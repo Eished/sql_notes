@@ -59,27 +59,208 @@
 
 ### 2-1 SQL VS NOSQL
 
+- SQL
+  - MySQL
+  - Oracle
+  - SQLServer
+  - PostGreSQL
+- NoSQL
+  - HBase
+  - MongoDB
+  - Redis
+  - Hadoop
+
 ### 2-2 关系型数据库的特点和适用场景
+
+关系数据库的特点：
+
+- 数据结构化存储在二维表中。
+- 支持事务的原子性A，一致性C，隔离性I，持久性D 特性。
+- 支持使用SQL语言对存储在其中的数据进行操作。
+
+关系数据库的适用场景：
+
+- 数据之间存在着一定关系，需要关联查询数据的场景。
+- 需要事务支持的业务场景。
+- 需要使用SQL语言灵活操作数据的场景。
 
 ### 2-3 非关系型数据库的特点和适用场景
 
+非关系型数据库特点：
+
+- 存储结构灵活，没有固定结构。
+- 对事务的支持比较弱，但对数据的并发处理性能高。
+- 大多不使用SQL语言操作数据。
+
+非关系数据库的适用场景：
+
+- 数据结构不固定的场景。
+- 对事务要求不高，但读写并发比较大的场景。
+- 对数据的处理操作比较简单的场景。
+
 ### 2-4 关系统型数据库选型步骤
+
+关系数据库选型原则：
+
+- 数据库使用的广泛性
+- 数据库的可扩展性
+- 数据库的安全性和稳定性
+- 数据库所支持的系统
+- 数据库的使用成本
 
 ### 2-5 为项目选择适合的数据库
 
-### 2-6 下载安装 VirtualBox
+1. 数据库使用的广泛性 [查看排行榜](https://db-engines.com/en/ranking)
+   1. Oracle
+   2. MySQL
+   3. Microsoft Server
+   4. PostgreSQL
+   5. MongoDB
+   6. Redis
+2. MySQL数据库的可扩展性
+   - 支持基于二进制日志的逻辑复制
+   - 存在多种第三方数据库中间层，支持读写分离及分库分表。
+3. MySQL的安全性和稳定性
+   - MySQL主从复制集群可达到99%的可用性。
+   - 配合主从复制高可用架构可以达到99.99%的可用性。
+   - 支持对存储在MySQL的数据进行分级安全控制。
 
-### 2-7 准备虚拟服务器
+> ### 2-6 下载安装 VirtualBox
 
-### 2-8 安装 CentOS 系统
+> ### 2-7 准备虚拟服务器
 
-### 2-9 配置 CentOS 系统
+### 2-8 安装 WSL2 Ubuntu 系统
 
-### 2-10 部署 MySQL8.0.15 之简介
+https://iknow.fun/2022/05/29/wsl2-javascript-python-vscode-huan-jing-pei-zhi-zong-jie/
 
-### 2-11 部署 MySQL8.0.15
+> ### 2-9 配置 Ubuntu 系统
 
-### 2-12 配置 MySQL8.0.15
+> CentOS Linux 已停止维护
+
+### 2-10 安装 MySQL 8.0
+
+安装MySQL
+
+https://docs.microsoft.com/zh-cn/windows/wsl/tutorials/wsl-database
+
+在 WSL (ie 上安装 MySQL。Ubuntu) ：
+
+1. 打开 WSL 终端 (即。Ubuntu) 。
+2. 更新 Ubuntu 包：`sudo apt update`
+3. 更新该包后，使用以下命令安装 MySQL：`sudo apt install mysql-server`
+4. 确认安装并获取版本号：`mysql --version`
+
+可能还想运行包含的安全脚本。 这会更改一些不太安全的默认选项，例如远程根登录名和示例用户。 运行安全脚本：
+
+1. 启动 MySQL 服务器：`sudo /etc/init.d/mysql start`
+2. 启动安全脚本提示符：`sudo mysql_secure_installation`
+3. 第一个提示符会询问是否要设置验证密码插件，该插件可用于测试 MySQL 密码的强度。 然后将为 MySQL 根用户设置密码，决定是否删除匿名用户，决定是否允许根用户本地和远程登录，决定是否删除测试数据库，最后决定是否立即重新加载特权表。
+
+若要打开 MySQL 提示符，请输入：`sudo mysql`
+
+若要查看可用的数据库，请在 MySQL 提示符中输入：`SHOW DATABASES;`
+
+若要创建新数据库，请输入：`CREATE DATABASE database_name;`
+
+若要删除数据库，请输入：` DROP DATABASE database_name;`
+
+有关使用 MySQL 数据库的更多信息，请参阅 [MySQL 文档](https://dev.mysql.com/doc/mysql-getting-started/en/)。
+
+若要在 VS Code 中使用 MySQL 数据库，请尝试使用 [MySQL 扩展](https://marketplace.visualstudio.com/items?itemName=cweijan.vscode-mysql-client2)。
+
+
+
+1、执行 `sudo apt install mysql-server` 安装mysql-server。*本文mysql-server的版本是8.0*
+
+安装过程中会提示设置root密码，按照提示输入即可
+
+2、验证安装 `mysql -u root -p`
+
+3、修改root用户的远程访问权限 `update user set host='%' where user='root';`
+
+4、刷新权限表`FLUSH PRIVILEGES;`
+
+5、重启mysql 服务
+
+
+
+> ### 2-11 部署 MySQL8.0.15
+>
+
+### 2-12 配置 MySQL8.0
+
+```
+启动文件
+vim /etc/init.d/mysql
+配置文件
+vim /etc/mysql/my.cnf
+```
+
+[windows连接WSL-ubuntu里安装的MySQL](https://blog.csdn.net/sexyluna/article/details/105007828)
+
+
+
+接着重启 mysql 服务，当以为大功告成时，mysql 再次给了我一个晴天霹雳，shell 上冒出以下错误
+
+- mysql 启动失败：su: warning: cannot change directory to /nonexistent: No such file or directory
+
+这种错误一般是 mysql 服务器异常关机导致的
+
+解决方案如下：
+
+```bash
+# Ubuntu
+sudo service mysql stop
+sudo usermod -d /var/lib/mysql/ mysql
+sudo service mysql start
+```
+
+作者：JyLie
+链接：https://juejin.cn/post/6961800061210591268
+来源：稀土掘金
+著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+
+
+
+[MySQL在WSL2上的安装及配置 文章目录](https://blog.csdn.net/qq_41918762/article/details/112402106)
+
+```
+// 新建用户 newuser 密码为：password
+CREATE USER 'newuser'@'localhost' IDENTIFIED BY 'password'; 
+
+// 这条语句是将 mysql 的database授权给 newuser
+// 这是因为 newuser 没有权限来 create database
+GRANT ALL ON mysql.* TO 'newuser'@'localhost';
+grant all privileges on mysql.* to 'newuser'@'%';
+
+use mysql;
+update mysql.user set host = '%' where user = 'newuser';
+flush privileges;
+```
+
+
+
+注释掉 bind-address
+
+Edit your MySql config by typing this in your Ubuntu instance: `sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf`
+
+Change the line: `bind-address = 127.0.0.1`
+
+To: `bind-address = 0.0.0.0`
+
+or change `0.0.0.0` to the IP returned by `wsl hostname -I`.
+
+Restart MySql using: `sudo service mysql restart`
+
+
+
+那是因为MySQL默认只能通过本机访问。所以，需要修改为允许远程访问：
+
+```shell
+use mysql;
+update mysql.user set host = '%' where user = 'root';
+flush privileges;
+```
 
 ### 2-13 初始化 MySQL8.0.15
 
