@@ -803,132 +803,132 @@ classDiagram
 | 课程表      | imc_course    |                   |
 | ----------- | ------------- | ----------------- |
 | 列名        | 代码          | 数据类型          |
-| 课程 ID(PK) | course_id     | int unsigned      |
-| 主标题(UK)  | title         | varchar[20]       |
-| 副标题      | title_desc    | varchar[50]       |
-| 课程方向 ID | type_id       | smallint-unsigned |
-| 课程分类 ID | class_id      | smallint-unsigned |
-| 课程难度 ID | level_id      | smallint-unsigned |
+| 课程ID(PK) | course_id     | int unsigned      |
+| 主标题(UK)  | title         | varchar(20)       |
+| 副标题      | title_desc    | varchar(50)       |
+| 课程方向ID | type_id       | smallint unsigned |
+| 课程分类ID | class_id      | smallint unsigned |
+| 课程难度ID | level_id      | smallint unsigned |
 | 上线时间    | online_time   | timestamp         |
-| 学习人数    | study_cnt     | int-unsigned      |
+| 学习人数    | study_cnt     | int unsigned      |
 | 课程时长    | course_time   | time              |
-| 课程简介    | intro         | varchar[200]      |
-| 课程需知    | info          | varchar[200]      |
-| 课程收获    | harest        | varchar[200]      |
-| 用户 ID     | user_id       | int-unsigned      |
-| 课程图片    | main_pic      | varchar[200]      |
-| 综合评分    | content_score | decimal[3,1]      |
-| 内容实用    | level_score   | decimal[3,1]      |
-| 简洁易懂    | logic_score   | decimal[3,1]      |
-| 逻辑清晰    | score         | decimal[3,1]      |
+| 课程简介    | intro         | varchar(200)      |
+| 课程需知    | info          | varchar(200)      |
+| 课程收获    | harest        | varchar(200)      |
+| 用户ID     | user_id       | int unsigned      |
+| 课程图片    | main_pic      | varchar(200)      |
+| 综合评分    | content_score | decimal(3,1)      |
+| 内容实用    | level_score   | decimal(3,1)      |
+| 简洁易懂    | logic_score   | decimal(3,1)      |
+| 逻辑清晰    | score         | decimal(3,1)      |
 
 | 课程章节       | imc_chapter  |                              |
 | -------------- | ------------ | ---------------------------- |
 | 列名           | 代码         | 数据类型                     |
-| 章节 ID(PK)    | shapter_id   | int-unsigned                 |
-| 课程 ID(UK)    | course_id    | int-unsigned                 |
-| 课程章节名(UK) | chapter_name | varchar[50]                  |
-| 章节说明       | chapter_info | varchar[200]                 |
-| 章节编号       | chapter_no   | tinyint[2]-unsigned-ZEROFILL |
+| 章节ID(PK)    | shapter_id   | int unsigned                 |
+| 课程ID(UK)    | course_id    | int unsigned                 |
+| 课程章节名(UK) | chapter_name | varchar(50)                  |
+| 章节说明       | chapter_info | varchar(200)                 |
+| 章节编号       | chapter_no   | tinyint(2) unsigned ZEROFILL |
 
 | 课程小节     | imc_subsection |                                |
 | ------------ | -------------- | ------------------------------ |
 | 列名         | 代码           | 数据类型                       |
-| 小节 ID(PK)  | sub_id         | int-unsigned                   |
-| 课程 ID(UK)  | chapter_id     | int-unsigned                   |
-| 章节 ID(UK)  | course_id      | int-unsigned                   |
-| 小节名称(UK) | sub_name       | varchar[50]                    |
-| 小节视频 url | sub_url        | varchar[200]                   |
-| 视频格式     | video_type     | enum['avi','mp4','mpeg','flv'] |
+| 小节ID(PK)  | sub_id         | int unsigned                   |
+| 课程ID(UK)  | chapter_id     | int unsigned                   |
+| 章节ID(UK)  | course_id      | int unsigned                   |
+| 小节名称(UK) | sub_name       | varchar(50)                    |
+| 小节视频url | sub_url        | varchar(200)                   |
+| 视频格式     | video_type     | enum('avi','mp4','mpeg','flv') |
 | 小节时长     | sub_time       | time                           |
-| 小节编号     | sub_no         | tinyint[2]-unsigned-ZEROFILL   |
+| 小节编号     | sub_no         | tinyint(2) unsigned ZEROFILL   |
 
 | 课程分类         | imc_class  |              |
 | ---------------- | ---------- | ------------ |
 | 列名             | 代码       | 数据类型     |
-| 课程方向 ID(PK)  | class_id   | int-unsigned |
-| 课程方向名称(UK) | class_name | varchar[10]  |
+| 课程方向ID(PK)  | class_id   | int unsigned |
+| 课程方向名称(UK) | class_name | varchar(10)  |
 | 添加时间         | add_time   | timestamp    |
 
 | 课程难度        | imc_level  |              |
 | --------------- | ---------- | ------------ |
 | 列名            | 代码       | 数据类型     |
-| 课程难度 ID(PK) | level_id   | int-unsigned |
-| 课程难度(UK)    | level_name | varchar[10]  |
+| 课程难度ID(PK) | level_id   | int unsigned |
+| 课程难度(UK)    | level_name | varchar(10)  |
 | 添加时间        | add_time   | timestamp    |
 
 | 课程方向        | imc_type  |              |
 | --------------- | --------- | ------------ |
 | 列名            | 代码      | 数据类型     |
-| 课程分类 ID(PK) | type_id   | int-unsigned |
-| 分类名称(UK)    | type_name | varchar[10]  |
+| 课程分类ID(PK) | type_id   | int unsigned |
+| 分类名称(UK)    | type_name | varchar(10)  |
 | 添加时间        | add_time  | timestamp    |
 
 | 用户         | imc_user    |                    |
 | ------------ | ----------- | ------------------ |
 | 列名         | 代码        | 数据类型           |
-| 用户 ID(PK)  | user_id     | int-unsigned       |
-| 用户昵称(UK) | user_nick   | varchar[20]        |
-| 密码         | user_pwd    | char[32]           |
-| 性别         | sex         | char[2]            |
-| 省           | province    | varchar[20]        |
-| 市           | city        | varchar[20]        |
-| 职位         | position    | varchar[10]        |
-| 说明         | mem         | varchar[100]       |
-| 经验         | exp_cnt     | mediumint-unsigned |
-| 积分         | score       | int-unsigned       |
-| 关注人数     | follow_cnt  | int-unsigned       |
-| 粉丝人数     | fans_cnt    | int-unsigned       |
-| 讲师标识     | is_teacher  | tinyint-unsigned   |
+| 用户ID(PK)  | user_id     | int unsigned       |
+| 用户昵称(UK) | user_nick   | varchar(20)        |
+| 密码         | user_pwd    | char(32)           |
+| 性别         | sex         | char(2)            |
+| 省           | province    | varchar(20)        |
+| 市           | city        | varchar(20)        |
+| 职位         | position    | varchar(10)        |
+| 说明         | mem         | varchar(100)       |
+| 经验         | exp_cnt     | mediumint unsigned |
+| 积分         | score       | int unsigned       |
+| 关注人数     | follow_cnt  | int unsigned       |
+| 粉丝人数     | fans_cnt    | int unsigned       |
+| 讲师标识     | is_teacher  | tinyint unsigned   |
 | 注册时间     | reg_time    | timestamp          |
-| 用户状态     | user_status | tinyint-unsigned   |
+| 用户状态     | user_status | tinyint unsigned   |
 
 | 问答评论表  | imc_question  |                     |
 | ----------- | ------------- | ------------------- |
 | 列名        | 代码          | 数据类型            |
-| 评论 ID(PK) | quest_id      | int-unsigned        |
-| 父评论 ID   | user_id       | int-unsigned        |
-| 课程 ID     | course_id     | int-unsigned        |
-| 章节 ID     | chapter_id    | int-unsigned        |
-| 小节 ID     | sub_id        | int-unsigned        |
-| 用户 ID     | replyid       | int-unsigned        |
-| 评论标题    | quest_title   | varchar[50]         |
+| 评论ID(PK) | quest_id      | int unsigned        |
+| 父评论ID   | user_id       | int unsigned        |
+| 课程ID     | course_id     | int unsigned        |
+| 章节ID     | chapter_id    | int unsigned        |
+| 小节ID     | sub_id        | int unsigned        |
+| 用户ID     | replyid       | int unsigned        |
+| 评论标题    | quest_title   | varchar(50)         |
 | 评论内容    | quest_content | text                |
-| 评论类型    | quest_type    | enum['问答','评论'] |
-| 浏览量      | view_cnt      | int-unsigned        |
+| 评论类型    | quest_type    | enum('问答','评论') |
+| 浏览量      | view_cnt      | int unsigned        |
 | 添加时间    | add_time      | timestamp           |
 
 | 笔记表      | imc_note     |              |
 | ----------- | ------------ | ------------ |
 | 列名        | 代码         | 数据类型     |
-| 笔记 ID(PK) | note_id      | int-unsigned |
-| 课程 ID     | user_id      | int-unsigned |
-| 章节 ID     | course_id    | int-unsigned |
-| 小节 ID     | chapter_id   | int-unsigned |
-| 用户 ID     | sub_id       | int-unsigned |
-| 笔记标题    | note_title   | varchar[50]  |
+| 笔记ID(PK) | note_id      | int unsigned |
+| 课程ID     | user_id      | int unsigned |
+| 章节ID     | course_id    | int unsigned |
+| 小节ID     | chapter_id   | int unsigned |
+| 用户ID     | sub_id       | int unsigned |
+| 笔记标题    | note_title   | varchar(50)  |
 | 笔记内容    | note_content | text         |
 | 添加时间    | add_time     | timestamp    |
 
 | 评价表      | imc_classvalue |              |
 | ----------- | -------------- | ------------ |
 | 列名        | 代码           | 数据类型     |
-| 评价 ID(PK) | value_id       | int-unsigned |
-| 用户 ID     | user_id        | int-unsigned |
-| 课程 ID     | course_id      | int-unsigned |
+| 评价ID(PK) | value_id       | int unsigned |
+| 用户ID     | user_id        | int unsigned |
+| 课程ID     | course_id      | int unsigned |
 | 评价内容    | content        | text         |
-| 内容实用    | content_score  | decimal[3,1] |
-| 综合评分    | level_score    | decimal[3,1] |
-| 逻辑清晰    | logic_score    | decimal[3,1] |
-| 综合评分    | score          | decimal[3,1] |
+| 内容实用    | content_score  | decimal(3,1) |
+| 综合评分    | level_score    | decimal(3,1) |
+| 逻辑清晰    | logic_score    | decimal(3,1) |
+| 综合评分    | score          | decimal(3,1) |
 | 添加时间    | add_time       | timestamp    |
 
 | 用户选课表      | imc_selectcourse |              |
 | --------------- | ---------------- | ------------ |
 | 列名            | 代码             | 数据类型     |
-| 用户选课 ID(PK) | select_id        | int-unsigned |
-| 用户 ID         | user_id          | int-unsigned |
-| 课程 ID         | course_id        | int-unsigned |
+| 用户选课ID(PK) | select_id        | int unsigned |
+| 用户ID         | user_id          | int unsigned |
+| 课程ID         | course_id        | int unsigned |
 | 选课时间        | select_time      | timestamp    |
 | 累积听课时长    | study_time       | time         |
 
