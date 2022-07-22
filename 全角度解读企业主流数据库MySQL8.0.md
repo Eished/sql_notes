@@ -203,45 +203,45 @@ sudo mysql
 sudo mysql -uroot -proot
 ```
 
-#### 修改root密码
+#### 修改 root 密码
 
 查看用户名和 host：`select user,host from user;`
 
 1. 在 /etc/mysql 下面有一个 debain.cnf 文件中记录了 mysql 的初始用户和密码，您可以用此用户登录去修改 root 密码
 
-   - 本来没设置root密码可跳过这步，直接到第三步去设置新密码。
+   - 本来没设置 root 密码可跳过这步，直接到第三步去设置新密码。
 
-   > centos 的 /etc 下是没有这个文件的，debian.cnf 应该是 debian 和 ubuntu 系统下才有的。本来没设置root密码可跳过这步，直接到第三步修改为新密码。
+   > centos 的 /etc 下是没有这个文件的，debian.cnf 应该是 debian 和 ubuntu 系统下才有的。本来没设置 root 密码可跳过这步，直接到第三步修改为新密码。
 
-    ```bash
-    (study) eis:/etc/mysql $ sudo cat debian.cnf 
-    # Automatically generated for Debian scripts. DO NOT TOUCH!
-    [client]
-    host     = localhost
-    user     = debian-sys-maint
-    password = s4fc2sdf
-    socket   = /var/run/mysqld/mysqld.sock
-    [mysql_upgrade]
-    host     = localhost
-    user     = debian-sys-maint
-    password = dQgoXtTH83Q4AbDp
-    socket   = /var/run/mysqld/mysqld.sock
-    ```
+   ```bash
+   (study) eis:/etc/mysql $ sudo cat debian.cnf
+   # Automatically generated for Debian scripts. DO NOT TOUCH!
+   [client]
+   host     = localhost
+   user     = debian-sys-maint
+   password = s4fc2sdf
+   socket   = /var/run/mysqld/mysqld.sock
+   [mysql_upgrade]
+   host     = localhost
+   user     = debian-sys-maint
+   password = dQgoXtTH83Q4AbDp
+   socket   = /var/run/mysqld/mysqld.sock
+   ```
 
-2. 使用这个账户登录，修改root密码。
+2. 使用这个账户登录，修改 root 密码。
 
    ```mysql
    # 先把root的旧密码置空
    use mysql;
-   
+
    update user set authentication_string='' where user='root';
-   
+
    # 查看root用户的校验字符串是否被置空；
-   select user, authentication_string from mysql.user; 
-   
+   select user, authentication_string from mysql.user;
+
    # 刷新保存
    flush privileges;
-   
+
    # 备注：Mysql5.7+ password字段 已改成 authentication_string字段
    ```
 
@@ -258,8 +258,6 @@ sudo mysql -uroot -proot
    Mysql8.0之前：
    update user set password=password('root') where user='root';
    ```
-
-
 
 #### [windows 连接 WSL-ubuntu 里安装的 MySQL](https://blog.csdn.net/sexyluna/article/details/105007828)
 
@@ -329,12 +327,8 @@ mysql>Delete FROM user Where User='test' and Host='localhost';
 
 # 删除账户及权限：
 drop user 用户名@'%';
-drop user 用户名@localhost; 
+drop user 用户名@localhost;
 ```
-
-
-
-
 
 > ### 2-13 初始化 MySQL8.0.15
 
@@ -1021,7 +1015,7 @@ classDiagram
 
 本章总结
 
-## 第 4 章 【众生视角】访问数据库的 N 种武器和姿势【必要常识】
+## 第 4 章 访问数据库的 N 种武器和姿势
 
 本章节不仅适用于各语言开发工程师，也适用于：
 
@@ -1039,9 +1033,9 @@ classDiagram
 ### 4-1 使用命令行工具访问 MySQL
 
 ```bash
-mysql -uroot -p -hlocalhhost
+mysql -uroot -proot -hlocalhhost
 # mysql -u<用户名> -p<密码> -h<网络ip地址>
-# -e<SQL(直接执行不进入命令行模式)> 
+# -e<SQL(直接执行不进入命令行模式)>
 ```
 
 > ### 4-2 使用 SQLyog 访问 MySQL
@@ -1080,14 +1074,12 @@ if __name__ == '__main__':
 
 ```
 
-
-
 ### 4-6 排查 MySQL1045 错误解决访问异常
 
 `pymysql.err.OperationalError:（1045，u"Access denied for user root'@'192.168.1.10'（using password:YES）"）`
 
 - 确认密码是否正确。
-- 确认是否有对IP的授权，%不包括localhost。
+- 确认是否有对 IP 的授权，%不包括 localhost。
 - 网络是否畅通。
 
 `pymysql.err.InternalError:（1153，u"Got a packet bigger than max_allowed_packet'bytes"）`
@@ -1096,14 +1088,11 @@ if __name__ == '__main__':
 
 - `SET PERSIST max_allowed_packet=100*1024*1024`
 
-
-
 > ### 4-7 排查 MySQL1153 错误解决访问异常
 >
 > ### 4-8 本章总结
->
 
-## 第 5 章 【极客视角】玩转 SQL 开发“道”与“术”之道篇【适用于日常工作】
+## 第 5 章 玩转 SQL 开发“道”与“术”之道篇
 
 本章品味独特，剑指 Geek Style。
 
@@ -1114,88 +1103,433 @@ if __name__ == '__main__':
 1. 【工作基本功】DCL& DDL& DML；
 2. 【工作必备技 】常用函数。
 
-### 5-1 【开始起航】初识 SQL
+### 初识 SQL
 
-### 5-2 【解锁】数据库访问控制语句
+- 什么是 SQL：一种描述性语言。
+- SQL 语言的作用：对存储在 RDBMS 中的数据进行增删改查等操作。
+- 常用的 SQL 语言的种类：DCL、DDL、DML、TCL
+  - DCL: 数据库管理语言
+  - DDL: 数据定义类语言
+  - DML: 数据操作语言
+  - TCL: 事务控制语言
 
-### 5-3 【详解】数据库账号创建命令
+### 数据库访问控制语句
 
-### 5-4 【实战】 创建项目数据库账号
+DCL（Data Control Language）
 
-### 5-5 【解锁】 数据库用户授权语句
+- 建立数据库账号：create user
+- 对用户授权：grant
+- 收回用户权限：revoke
 
-### 5-6 【详解】数据库用户授权命令
+#### 数据库账号创建命令
 
-### 5-7 【实战】数据库用户授权语句
+[CREATE USER Statement](https://dev.mysql.com/doc/refman/8.0/en/create-user.html)
 
-### 5-8 【工作填坑技能】为数据库用户授权时易犯错误
+```mysql
+CREATE USER [IF NOT EXISTS]
+    user [auth_option] [, user [auth_option]] ...
+    DEFAULT ROLE role [, role ] ...
+    [REQUIRE {NONE | tls_option [[AND] tls_option] ...}]
+    [WITH resource_option [resource_option] ...]
+    [password_option | lock_option] ...
+    [COMMENT 'comment_string' | ATTRIBUTE 'json_object']
 
-### 5-9 【实操】使用 Revoke 回收数据库用户权限
+user:
+    (see Section 6.2.4, “Specifying Account Names”)
 
-### 5-10 【实战必会】 常用的 DDL 语句-1
+auth_option: {
+    IDENTIFIED BY 'auth_string' [AND 2fa_auth_option]
+  | IDENTIFIED BY RANDOM PASSWORD [AND 2fa_auth_option]
+  | IDENTIFIED WITH auth_plugin [AND 2fa_auth_option]
+  | IDENTIFIED WITH auth_plugin BY 'auth_string' [AND 2fa_auth_option]
+  | IDENTIFIED WITH auth_plugin BY RANDOM PASSWORD [AND 2fa_auth_option]
+  | IDENTIFIED WITH auth_plugin AS 'auth_string' [AND 2fa_auth_option]
+  | IDENTIFIED WITH auth_plugin [initial_auth_option]
+}
+```
 
-### 5-11 【实战必会】 常用的 DDL 语句-2
+- `user [auth_option]` 用户名@访问列表
+  - 决定用户可以从哪些客户端访问
+- `create user mc_class@'172.22.%.%' identified with 'mysql_native_password' by '12345'`
+  - wsl2 网段不固定，重启会改变。
+  - 登录：`sudo mysql -umc_class -p12345 -h172.22.164.224`
 
-### 5-12 【实战】 创建项目数据库 imc_db
+**查看帮助文档和插件**
 
-### 5-13 【解锁】使用 create table 建立表
+```mysql
+mysql> help create user
 
-### 5-14 【解锁】使用 alter table 修改表
+# 查看认证插件
+mysql> show plugins;
+```
 
-### 5-15 【解锁】使用 drop table 删除表
+- MySQL8.0之前
+  - `mysql_native_password `
+    - 适用于高可用方式
+- MySQL8.0默认使用
+  - `caching_sha2_password`
+    - 缓存，连接快
+- 其它
+  - `sha256_password`
+  - `sha2_cache_cleaner`
+  - `daemon_keyring_proxy_plugin`
+- 设置密码过期时间
 
-### 5-16 【解析】建立项目课程表
+```mysql
+password_option: {
+    PASSWORD EXPIRE [DEFAULT | NEVER | INTERVAL N DAY]
+  | PASSWORD HISTORY {DEFAULT | N}
+  | PASSWORD REUSE INTERVAL {DEFAULT | N DAY}
+  | PASSWORD REQUIRE CURRENT [DEFAULT | OPTIONAL]
+  | FAILED_LOGIN_ATTEMPTS N
+  | PASSWORD_LOCK_TIME {N | UNBOUNDED}
+}
+```
 
-### 5-17 【解析】建立项目课程相关表
+#### Grant 授权语句
 
-### 5-18 【解析】建立问答相关表
+```mysql
+GRANT
+    priv_type [(column_list)]
+      [, priv_type [(column_list)]] ...
+    ON [object_type] priv_level
+    TO user_or_role [, user_or_role] ...
+    [WITH GRANT OPTION]
+    [AS user
+        [WITH ROLE
+            DEFAULT
+          | NONE
+          | ALL
+          | ALL EXCEPT role [, role ] ...
+          | role [, role ] ...
+        ]
+    ]
+}
+```
 
-### 5-19 【实战】 建立项目中的表
+- `priv_type [(column_list)]` 权限列表
+  - `show privileges` 查看所有权限（50个权限）
+- `ON [object_type] priv_level` 给哪个对象授权，表和列
+- `TO user_or_role [, user_or_role]` 用户或角色
 
-### 5-20 【必知】索引维护语句
 
-### 5-21 【必会】其它 DDL 语句的用法
 
-## 第 6 章 【极客视角】玩转 SQL 开发“道”与“术”之术篇【工作高阶技能】
+常用权限：
+
+| 权限名称 | 说明         |
+| -------- | ------------ |
+| Insert   | 插入         |
+| Delete   | 删除         |
+| Update   | 修改         |
+| Select   | 查询         |
+| Execute  | 执行存储过程 |
+
+#### 给用户授权
+
+- 授予具体的列
+  - `grant select(user,host) on mysql.user to mc_class@'172.22.%.%';`
+  - 授予`mc_class@'171.22.%.%'`用户 mysql 数据库，user 表，user 和 host 列的查询权限。 
+
+```mysql
+# 授权一个表
+grant select on mysql.user to mc_class@'172.22.%.%';
+# 授权整个库
+grant select on mysql.* to mc_class@'172.22.%.%';
+```
+
+#### GRANT 命令的注意事项
+
+- 使用grant授权的数据库账户必需存在
+  - `ERROR 1410 (42000): You are not allowed to create a user with GRANT`
+
+- 用户使用 `grant` 命令授权必需具有 `grant option` 的权限
+  - 只能分配自己有的权限。
+- 获取命令帮助 `\h grant`
+
+#### 使用 Revoke 回收数据库用户权限
+
+```mysql
+REVOKE
+    priv_type [(column_list)]
+      [, priv_type [(column_list)]] ...
+    ON [object_type] priv_level
+    FROM user_or_role [, user_or_role] ...
+```
+
+- 权限列表
+- 回收哪个对象的权限
+- 从哪个用户
+
+```mysql
+grant select,delete,insert,update ON mysql.* to mc_class@'172.22.%.%';
+
+revoke select,delete,insert,update ON mysql.* from mc_class@'172.22.%.%';
+```
+
+
+
+### 创建数据库对象
+
+#### DDL（Data Definition language）
+
+- 建立/修改/删除数据库：`create/alter/drop database`
+- 建立/修改/删除表：`create/alter/drop table`
+- 建立/删除索引：`create/drop index`
+- 清空表：`truncate table`
+- 重命名表：`rename table`
+- 建立/修改/删除视图：`create/alter/drop view`
+
+#### 创建项目数据库 imc_db
+
+```mysql
+CREATE {DATABASE | SCHEMA} [IF NOT EXISTS] db_name
+    [create_option] ...
+
+create_option: [DEFAULT] {
+    CHARACTER SET [=] charset_name
+  | COLLATE [=] collation_name
+  | ENCRYPTION [=] {'Y' | 'N'}
+}
+
+ALTER {DATABASE | SCHEMA} [db_name]
+    alter_option ...
+
+DROP {DATABASE | SCHEMA} [IF EXISTS] db_name
+```
+
+- `CHARACTER SET [=] charset_name`
+  - 字符集
+
+- `COLLATE [=] collation_name`
+  - 排序规则
+- 不能改数据库名称
+
+
+
+```mysql
+create database imc_db;
+
+# 给用户授权
+grant select,update,insert,drop on imc_db.* to mc_class@'172.22.%.%';
+```
+
+
+
+#### 使用 create table 建立表
+
+```mysql
+CREATE [TEMPORARY] TABLE [IF NOT EXISTS] tbl_name
+    (create_definition,...)
+    [table_options]
+    [partition_options]
+    
+create_definition: {
+    col_name column_definition
+  | {INDEX | KEY} [index_name] [index_type] (key_part,...)
+      [index_option] ...
+  | {FULLTEXT | SPATIAL} [INDEX | KEY] [index_name] (key_part,...)
+      [index_option] ...
+  | [CONSTRAINT [symbol]] PRIMARY KEY
+      [index_type] (key_part,...)
+      [index_option] ...
+  | [CONSTRAINT [symbol]] UNIQUE [INDEX | KEY]
+      [index_name] [index_type] (key_part,...)
+      [index_option] ...
+  | [CONSTRAINT [symbol]] FOREIGN KEY
+      [index_name] (col_name,...)
+      reference_definition
+  | check_constraint_definition
+}
+
+column_definition: {
+    data_type [NOT NULL | NULL] [DEFAULT {literal | (expr)} ]
+      [VISIBLE | INVISIBLE]
+      # 自增 唯一 主键
+      [AUTO_INCREMENT] [UNIQUE [KEY]] [[PRIMARY] KEY]
+      [COMMENT 'string']
+      [COLLATE collation_name]
+      [COLUMN_FORMAT {FIXED | DYNAMIC | DEFAULT}]
+      [ENGINE_ATTRIBUTE [=] 'string']
+      [SECONDARY_ENGINE_ATTRIBUTE [=] 'string']
+      [STORAGE {DISK | MEMORY}]
+      [reference_definition]
+      [check_constraint_definition]
+  | data_type
+      [COLLATE collation_name]
+      [GENERATED ALWAYS] AS (expr)
+      [VIRTUAL | STORED] [NOT NULL | NULL]
+      [VISIBLE | INVISIBLE]
+      [UNIQUE [KEY]] [[PRIMARY] KEY]
+      [COMMENT 'string']
+      [reference_definition]
+      [check_constraint_definition]
+}
+
+table_options:
+    table_option [[,] table_option] ...
+    
+table_option: {
+    AUTOEXTEND_SIZE [=] value
+  | AUTO_INCREMENT [=] value
+  | AVG_ROW_LENGTH [=] value
+# 字符集
+  | [DEFAULT] CHARACTER SET [=] charset_name
+  | CHECKSUM [=] {0 | 1}
+# 排序规则
+  | [DEFAULT] COLLATE [=] collation_name
+# 评论 备注
+  | COMMENT [=] 'string'
+  | COMPRESSION [=] {'ZLIB' | 'LZ4' | 'NONE'}
+  | CONNECTION [=] 'connect_string'
+  | {DATA | INDEX} DIRECTORY [=] 'absolute path to directory'
+  | DELAY_KEY_WRITE [=] {0 | 1}
+  | ENCRYPTION [=] {'Y' | 'N'}
+# InnoDB 默认存储引擎
+  | ENGINE [=] engine_name
+  | ENGINE_ATTRIBUTE [=] 'string'
+  | INSERT_METHOD [=] { NO | FIRST | LAST }
+  | KEY_BLOCK_SIZE [=] value
+  | MAX_ROWS [=] value
+  | MIN_ROWS [=] value
+  | PACK_KEYS [=] {0 | 1 | DEFAULT}
+  | PASSWORD [=] 'string'
+  | ROW_FORMAT [=] {DEFAULT | DYNAMIC | FIXED | COMPRESSED | REDUNDANT | COMPACT}
+  | SECONDARY_ENGINE_ATTRIBUTE [=] 'string'
+  | STATS_AUTO_RECALC [=] {DEFAULT | 0 | 1}
+  | STATS_PERSISTENT [=] {DEFAULT | 0 | 1}
+  | STATS_SAMPLE_PAGES [=] value
+  | TABLESPACE tablespace_name [STORAGE {DISK | MEMORY}]
+  | UNION [=] (tbl_name[,tbl_name]...)
+}
+
+```
+
+
+
+#### 使用 alter table 修改表
+
+```mysql
+ALTER TABLE tbl_name
+    [alter_option [, alter_option] ...]
+    [partition_options]
+
+alter_option: {
+    table_options
+  | ADD [COLUMN] col_name column_definition
+        [FIRST | AFTER col_name]
+  | ADD [COLUMN] (col_name column_definition,...)
+  | ADD {INDEX | KEY} [index_name]
+        [index_type] (key_part,...) [index_option] ...
+  | ADD {FULLTEXT | SPATIAL} [INDEX | KEY] [index_name]
+        (key_part,...) [index_option] ...
+  | ADD [CONSTRAINT [symbol]] PRIMARY KEY
+        [index_type] (key_part,...)
+        [index_option] ...
+  | ADD [CONSTRAINT [symbol]] UNIQUE [INDEX | KEY]
+        [index_name] [index_type] (key_part,...)
+        [index_option] ...
+  | ADD [CONSTRAINT [symbol]] FOREIGN KEY
+        [index_name] (col_name,...)
+        reference_definition
+  | ADD [CONSTRAINT [symbol]] CHECK (expr) [[NOT] ENFORCED]
+  | DROP {CHECK | CONSTRAINT} symbol
+  | ALTER {CHECK | CONSTRAINT} symbol [NOT] ENFORCED
+  | ALGORITHM [=] {DEFAULT | INSTANT | INPLACE | COPY}
+  | ALTER [COLUMN] col_name {
+        SET DEFAULT {literal | (expr)}
+      | SET {VISIBLE | INVISIBLE}
+      | DROP DEFAULT
+    }
+  | ALTER INDEX index_name {VISIBLE | INVISIBLE}
+  | CHANGE [COLUMN] old_col_name new_col_name column_definition
+        [FIRST | AFTER col_name]
+  | [DEFAULT] CHARACTER SET [=] charset_name [COLLATE [=] collation_name]
+  | CONVERT TO CHARACTER SET charset_name [COLLATE collation_name]
+  | {DISABLE | ENABLE} KEYS
+  | {DISCARD | IMPORT} TABLESPACE
+  | DROP [COLUMN] col_name
+  | DROP {INDEX | KEY} index_name
+  | DROP PRIMARY KEY
+  | DROP FOREIGN KEY fk_symbol
+  | FORCE
+  | LOCK [=] {DEFAULT | NONE | SHARED | EXCLUSIVE}
+  | MODIFY [COLUMN] col_name column_definition
+        [FIRST | AFTER col_name]
+  | ORDER BY col_name [, col_name] ...
+  | RENAME COLUMN old_col_name TO new_col_name
+  | RENAME {INDEX | KEY} old_index_name TO new_index_name
+  | RENAME [TO | AS] new_tbl_name
+  | {WITHOUT | WITH} VALIDATION
+}
+
+```
+
+
+
+#### 使用 drop table 删除表
+
+```mysql
+DROP [TEMPORARY] TABLE [IF EXISTS]
+    tbl_name [, tbl_name] ...
+    [RESTRICT | CASCADE]
+```
+
+
+
+#### 建立项目课程表
+
+- B树索引不能对Null索引，非空更好查询。
+
+#### 建立项目课程相关表
+
+#### 建立问答相关表
+
+#### 建立项目中的表
+
+#### 索引维护语句
+
+#### 其它 DDL 语句的用法
+
+## 第 6 章 玩转 SQL 开发“道”与“术”之术篇
 
 本章带你玩转 SQL 开发，学习其实可以很快乐哦。围绕核心是“工作”较为高阶技能和加薪技能，主要是如下两部分：
 
 1. 【工作高阶技】With 语句；
 2. 【工作加薪技】窗口函数。
 
-### 6-1 【初识】DML 语句
+### 6-1 DML 语句
 
-### 6-2 【提升思维】编写 Insert 语句的思路
+### 6-2 编写 Insert 语句的思路
 
-### 6-3 【开发常用】实战 insert 语句
+### 6-3 实战 insert 语句
 
-### 6-4 【开发必备】使用 select 语句查询表中的数据
+### 6-4 使用 select 语句查询表中的数据
 
 ### 6-5 使用 Where 子句过滤表中的行
 
 ### 6-6 使用比较运算符过滤数据
 
-### 6-7 【实战】MySQL 中的比较运算符-1
+### 6-7 MySQL 中的比较运算符-1
 
-### 6-8 【实战】MySQL 中的比较运算符-2
+### 6-8 MySQL 中的比较运算符-2
 
-### 6-9 【面试常问】使用逻辑运算符关联多个过滤条件
+### 6-9 使用逻辑运算符关联多个过滤条件
 
-### 6-10 【实战】MySQL 逻辑运算符-1
+### 6-10 MySQL 逻辑运算符-1
 
-### 6-11 【实战】 MySQL 逻辑运算符-2
+### 6-11 MySQL 逻辑运算符-2
 
-### 6-12 【解锁】从多个表中查询数据
+### 6-12 从多个表中查询数据
 
-### 6-13 【实战】使用内关联查询多个表中的数据
+### 6-13 使用内关联查询多个表中的数据
 
-### 6-14 【解锁】外联接查询
+### 6-14 外联接查询
 
-### 6-15 【实战】 外关联查询
+### 6-15 外关联查询
 
 ### 6-16 使用 Group by 分组查询结果
 
-### 6-17 【实战】分组统计查询
+### 6-17 分组统计查询
 
 ### 6-18 使用 having 子句过滤分组结果
 
@@ -1209,15 +1543,15 @@ if __name__ == '__main__':
 
 ### 6-23 使用 Limit 子句限制返回的行数
 
-### 6-24 【解锁】使用 Create View 语句创建视图
+### 6-24 使用 Create View 语句创建视图
 
-### 6-25 【初识】数据删除语句 Delete
+### 6-25 数据删除语句 Delete
 
-### 6-26 【实战】使用 Delete 语句删除数据
+### 6-26 使用 Delete 语句删除数据
 
-### 6-27 【初识】 数据更新语句 Update
+### 6-27 数据更新语句 Update
 
-### 6-28 【实战】使用 Update 语句修改数据
+### 6-28 使用 Update 语句修改数据
 
 ### 6-29 使用 SQL 获取数据库时间
 
@@ -1237,33 +1571,33 @@ if __name__ == '__main__':
 
 ### 6-37 MySQL 中的其它常用函数
 
-### 6-38 【解锁】MySQL8.0 新增的公共表表达式
+### 6-38 MySQL8.0 新增的公共表表达式
 
-### 6-39 【实战】 公共表表达式-1
+### 6-39 公共表表达式-1
 
-### 6-40 【实战】 公共表表达式-2
+### 6-40 公共表表达式-2
 
-### 6-41 【解锁】MySQL8.0 新增的窗口函数
+### 6-41 MySQL8.0 新增的窗口函数
 
-### 6-42 【实战】 窗口函数-1
+### 6-42 窗口函数-1
 
-### 6-43 【实战】 窗口函数-2
+### 6-43 窗口函数-2
 
-### 6-44 【实战】 窗口函数-3
+### 6-44 窗口函数-3
 
-### 6-45 【警惕】SQL 开发中易犯的错误-1
+### 6-45 SQL 开发中易犯的错误-1
 
-### 6-46 【警惕】 SQL 开发中易犯的错误-2
+### 6-46 SQL 开发中易犯的错误-2
 
 ### 6-47 章节总结
 
-## 第 7 章 【专家视角】揭开 SQL 优化神秘面纱【适用于升职加薪】
+## 第 7 章 揭开 SQL 优化神秘面纱
 
 武以快为尊。同理，快速高效工作，同样的工作时长，却创造更多企业价值，凸显个人价值，才能立于不败之地。
 
 本章将从专家的视角，为你揭开 SQL 优化神秘面纱，解锁 SQL 优化的升职加薪技能。让你在工作中比别人技高一筹，助你在工作中对 SQL 优化，慢查询优化能有独到的企业级解决方案，为你的高薪保驾护航。
 
-### 7-1 【解锁】SQL 优化的步骤
+### 7-1 SQL 优化的步骤
 
 ### 7-2 发现有性能问题的 SQL
 
@@ -1271,61 +1605,61 @@ if __name__ == '__main__':
 
 ### 7-4 慢查询日志分析利器
 
-### 7-5 【实战】安装 percona 工具集
+### 7-5 安装 percona 工具集
 
-### 7-6 【实战】启用慢查询日志
+### 7-6 启用慢查询日志
 
-### 7-7 【实战】分析慢查询日志
+### 7-7 分析慢查询日志
 
 ### 7-8 实时获取需要优化的 SQL
 
-### 7-9 【解锁】什么是 SQL 的执行计划？
+### 7-9 什么是 SQL 的执行计划？
 
 ### 7-10 获取 SQL 的执行计划
 
-### 7-11 【实战】 分析 SQL 的执行计划-[id 列]
+### 7-11 分析 SQL 的执行计划-[id 列]
 
-### 7-12 【实战】 分析 SQL 的执行计划-[select_type 列]
+### 7-12 分析 SQL 的执行计划-[select_type 列]
 
-### 7-13 【实战】 分析 SQL 的执行计划-[select-type 列]续
+### 7-13 分析 SQL 的执行计划-[select-type 列]续
 
-### 7-14 【实战】 分析 SQL 的执行计划-[table 列]
+### 7-14 分析 SQL 的执行计划-[table 列]
 
-### 7-15 【实战】 分析 SQL 的执行计划-[type 列]
+### 7-15 分析 SQL 的执行计划-[type 列]
 
-### 7-16 【实战】 分析 SQL 的执行计划-[type 列]续
+### 7-16 分析 SQL 的执行计划-[type 列]续
 
-### 7-17 【实战】 分析 SQL 的执行计划-[keys 相关列]
+### 7-17 分析 SQL 的执行计划-[keys 相关列]
 
-### 7-18 【实战】 分析 SQL 的执行计划-[rows 列]
+### 7-18 分析 SQL 的执行计划-[rows 列]
 
-### 7-19 【实战】 分析 SQL 的执行计划-[extra 列]
+### 7-19 分析 SQL 的执行计划-[extra 列]
 
-## 第 8 章 【专家视角】SQL 的索引优化之向面试开炮&吊打面试官
+## 第 8 章 SQL 的索引优化之向面试开炮&吊打面试官
 
 本章针对面试中高频考点：索引优化进行讲解，让你面试无忧，直接向面试开炮，甚至吊打面试官。
 
-### 8-1 【解锁】SQL 优化的常用手段
+### 8-1 SQL 优化的常用手段
 
-### 8-2 【重要】在 MySQL 中索引的作用
+### 8-2 在 MySQL 中索引的作用
 
 ### 8-3 Btree+索引的特点
 
 ### 8-4 如何选择在什么列上建立索引
 
-### 8-5 【实战】 针对 SQL 语句的索引优化
+### 8-5 针对 SQL 语句的索引优化
 
-### 8-6 【实战】如何选择索引键的顺序
+### 8-6 如何选择索引键的顺序
 
-### 8-7 【警惕】锁引使用的误区
+### 8-7 锁引使用的误区
 
 ### 8-8 SQL 优化的第二选择 SQL 改写
 
-### 8-9 【实战】SQL 改写优化
+### 8-9 SQL 改写优化
 
 ### 8-10 本章小结
 
-## 第 9 章 【架构师视角】搞定数据库并发高压，服务器永不宕机【可用于彰显你的眼界&格局】
+## 第 9 章 搞定数据库并发高压，服务器永不宕机
 
 本章紧扣数据库宕机这一企业痛点问题，讲解“高并发”下数据库企业级解决方案。
 
@@ -1344,37 +1678,37 @@ if __name__ == '__main__':
 
 ### 9-4 并发带来的问题【不可重复读和幻读】
 
-### 9-5 【解锁】INNODB 的几种事务隔离级别
+### 9-5 INNODB 的几种事务隔离级别
 
 ### 9-6 如何设置 INNODB 事务隔离级别
 
-### 9-7 【实战】serializable 事务隔离级别
+### 9-7 serializable 事务隔离级别
 
-### 9-8 【实战】repeatable read 事务隔离级别
+### 9-8 repeatable read 事务隔离级别
 
-### 9-9 【实战】read committed 事务隔离级别
+### 9-9 read committed 事务隔离级别
 
-### 9-10 【实战】read uncommitted 事务隔离级别
+### 9-10 read uncommitted 事务隔离级别
 
-### 9-11 【实战】事务阻塞的产生
+### 9-11 事务阻塞的产生
 
-### 9-12 产生阻塞的主要原因-【锁】
+### 9-12 产生阻塞的主要原因-
 
-### 9-13 【重要】如何检测阻塞
+### 9-13 如何检测阻塞
 
-### 9-14 【实战】 事务阻塞的捕获
+### 9-14 事务阻塞的捕获
 
 ### 9-15 如何处理事务中的阻塞
 
-### 9-16 并发事务的另一个问题-【死锁】
+### 9-16 并发事务的另一个问题-
 
-### 9-17 【重要】 如何检测死锁
+### 9-17 如何检测死锁
 
 ### 9-18 如何处理事务的死锁
 
 ### 9-19 事和和并发章节总结
 
-## 第 10 章 【青春不散场】课程总结，彰显重点【知识梳理，重塑知识栈】
+## 第 10 章 课程总结，彰显重点
 
 本章进行课程所有内容的梳理，总结回顾。提炼精华，再现经典。帮助同学们快速梳理，巩固升华，达到融会贯通，学以致用到工作所需中。
 
