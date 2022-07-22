@@ -197,62 +197,67 @@ vim /etc/mysql/my.cnf
 sudo service mysql start
 sudo service mysql stop
 sudo service mysql restart
-# 启动
+# 进入命令行
 sudo mysql
-# 用户名root 密码root 启动
+# 用户名root 密码root 进入命令行
 sudo mysql -uroot -proot
 ```
 
-**修改root密码**
+#### 修改root密码
 
-1. 查看用户名和 host：`select user,host from user;`
+查看用户名和 host：`select user,host from user;`
 
-在 /etc/mysql 下面有一个 debain.cnf 文件中记录了 mysql 的初始用户和密码，您可以用此用户登录去修改 root 密码
+1. 在 /etc/mysql 下面有一个 debain.cnf 文件中记录了 mysql 的初始用户和密码，您可以用此用户登录去修改 root 密码
 
-> entos 的 /etc 下是没有这个文件的，debian.cnf 应该是 debian 和 ubuntu 系统下才有的。
+   - 本来没设置root密码可跳过这步，直接到第三步去设置新密码。
 
-```bash
-(study) eis:/etc/mysql $ sudo cat debian.cnf 
-# Automatically generated for Debian scripts. DO NOT TOUCH!
-[client]
-host     = localhost
-user     = debian-sys-maint
-password = dQgoXtTH83Q4Ab
-socket   = /var/run/mysqld/mysqld.sock
-[mysql_upgrade]
-host     = localhost
-user     = debian-sys-maint
-password = dQgoXtTH83Q4AbDp
-socket   = /var/run/mysqld/mysqld.sock
-```
+   > centos 的 /etc 下是没有这个文件的，debian.cnf 应该是 debian 和 ubuntu 系统下才有的。本来没设置root密码可跳过这步，直接到第三步修改为新密码。
 
-使用这个账户登录，修改root密码。
+    ```bash
+    (study) eis:/etc/mysql $ sudo cat debian.cnf 
+    # Automatically generated for Debian scripts. DO NOT TOUCH!
+    [client]
+    host     = localhost
+    user     = debian-sys-maint
+    password = dQgoXtTH83Q4Ab
+    socket   = /var/run/mysqld/mysqld.sock
+    [mysql_upgrade]
+    host     = localhost
+    user     = debian-sys-maint
+    password = dQgoXtTH83Q4AbDp
+    socket   = /var/run/mysqld/mysqld.sock
+    ```
 
-```mysql
-# 先把root的旧密码置空
-use mysql;
+2. 使用这个账户登录，修改root密码。
 
-update user set authentication_string='' where user='root';
+   ```mysql
+   # 先把root的旧密码置空
+   use mysql;
+   
+   update user set authentication_string='' where user='root';
+   
+   # 查看root用户的校验字符串是否被置空；
+   select user, authentication_string from mysql.user; 
+   
+   # 刷新保存
+   flush privileges;
+   
+   # 备注：Mysql5.7+ password字段 已改成 authentication_string字段
+   ```
 
-# 查看root用户的校验字符串是否被置空；
-select user, authentication_string from mysql.user; 
+3. 重置成新密码
 
-# 刷新保存
-flush privileges;
-
-# 备注：Mysql5.7+ password字段 已改成 authentication_string字段
-```
-
-```mysql
-# 重置成新密码
-alter user 'root'@'localhost' identified by 'newpassword';
-
-# 或者：alter user 'root'@'%' identified by 'newpassword';
-
-备注：Mysql8.0修改密码方式已有变化（此处是个坑，需要注意）
-Mysql8.0之前：
-update user set password=password('root') where user='root';
-```
+   ```mysql
+   # 跳过第二步的需要先 use mysql;
+   # 重置成新密码
+   alter user 'root'@'%' identified by 'newpassword';
+   
+   # 或者：alter user 'root'@'localhost' identified by 'newpassword';
+   
+   备注：Mysql8.0修改密码方式已有变化（此处是个坑，需要注意）
+   Mysql8.0之前：
+   update user set password=password('root') where user='root';
+   ```
 
 
 
