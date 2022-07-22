@@ -219,7 +219,7 @@ sudo mysql -uroot -proot
     [client]
     host     = localhost
     user     = debian-sys-maint
-    password = dQgoXtTH83Q4Ab
+    password = s4fc2sdf
     socket   = /var/run/mysqld/mysqld.sock
     [mysql_upgrade]
     host     = localhost
@@ -324,11 +324,12 @@ mysql>Delete FROM user Where User='test' and Host='localhost';
 
  mysql>flush privileges;
 
- mysql>drop database testDB; //删除用户的数据库
+# 删除用户的数据库
+ mysql>drop database testDB;
 
-删除账户及权限：>drop user 用户名@'%';
-
-　　　　　　　　>drop user 用户名@ localhost; 
+# 删除账户及权限：
+drop user 用户名@'%';
+drop user 用户名@localhost; 
 ```
 
 
@@ -1051,15 +1052,56 @@ mysql -uroot -p -hlocalhhost
 
 [Python 环境安装教程](https://iknow.fun/2022/05/29/wsl2-javascript-python-vscode-huan-jing-pei-zhi-zong-jie/)
 
-### 4-4 实战部署 Python 的 MySQL 驱动类库
+> ### 4-4 实战部署 Python 的 MySQL 驱动类库
 
 ### 4-5 开发 Python 操作 MySQL 数据库
 
+```python
+import pymysql
+
+db_host = 'localhost'
+db_user = 'root'
+db_pass = 'root'
+db_database = 'mysql'
+db_port = 3306
+
+if __name__ == '__main__':
+    conn = pymysql.connect(host=db_host, port=db_port,
+                           user=db_user, passwd=db_pass, db=db_database)
+    sqlstr="""
+      select user,host from user
+    """
+    cursor = conn.cursor()
+    cursor.execute(sqlstr)
+    result = cursor.fetchall()
+    for i in result:
+      print("user:%s host:%s"%(i[0],i[1]))
+    conn.close()
+
+```
+
+
+
 ### 4-6 排查 MySQL1045 错误解决访问异常
 
-### 4-7 排查 MySQL1153 错误解决访问异常
+`pymysql.err.OperationalError:（1045，u"Access denied for user root'@'192.168.1.10'（using password:YES）"）`
 
-### 4-8 本章总结
+- 确认密码是否正确。
+- 确认是否有对IP的授权，%不包括localhost。
+- 网络是否畅通。
+
+`pymysql.err.InternalError:（1153，u"Got a packet bigger than max_allowed_packet'bytes"）`
+
+- 增加`max_allowed_packet`配置的大小。
+
+- `SET PERSIST max_allowed_packet=100*1024*1024`
+
+
+
+> ### 4-7 排查 MySQL1153 错误解决访问异常
+>
+> ### 4-8 本章总结
+>
 
 ## 第 5 章 【极客视角】玩转 SQL 开发“道”与“术”之道篇【适用于日常工作】
 
