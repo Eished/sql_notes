@@ -191,7 +191,72 @@ vim /etc/init.d/mysql
 vim /etc/mysql/my.cnf
 ```
 
-[windows 连接 WSL-ubuntu 里安装的 MySQL](https://blog.csdn.net/sexyluna/article/details/105007828)
+**常用命令**
+
+```bash
+sudo service mysql start
+sudo service mysql stop
+sudo service mysql restart
+# 启动
+sudo mysql
+# 用户名root 密码root 启动
+sudo mysql -uroot -proot
+```
+
+**修改root密码**
+
+1. 查看用户名和 host：`select user,host from user;`
+
+在 /etc/mysql 下面有一个 debain.cnf 文件中记录了 mysql 的初始用户和密码，您可以用此用户登录去修改 root 密码
+
+> entos 的 /etc 下是没有这个文件的，debian.cnf 应该是 debian 和 ubuntu 系统下才有的。
+
+```bash
+(study) eis:/etc/mysql $ sudo cat debian.cnf 
+# Automatically generated for Debian scripts. DO NOT TOUCH!
+[client]
+host     = localhost
+user     = debian-sys-maint
+password = dQgoXtTH83Q4Ab
+socket   = /var/run/mysqld/mysqld.sock
+[mysql_upgrade]
+host     = localhost
+user     = debian-sys-maint
+password = dQgoXtTH83Q4AbDp
+socket   = /var/run/mysqld/mysqld.sock
+```
+
+使用这个账户登录，修改root密码。
+
+```mysql
+# 先把root的旧密码置空
+use mysql;
+
+update user set authentication_string='' where user='root';
+
+# 查看root用户的校验字符串是否被置空；
+select user, authentication_string from mysql.user; 
+
+# 刷新保存
+flush privileges;
+
+# 备注：Mysql5.7+ password字段 已改成 authentication_string字段
+```
+
+```mysql
+# 重置成新密码
+alter user 'root'@'localhost' identified by 'newpassword';
+
+# 或者：alter user 'root'@'%' identified by 'newpassword';
+
+备注：Mysql8.0修改密码方式已有变化（此处是个坑，需要注意）
+Mysql8.0之前：
+update user set password=password('root') where user='root';
+```
+
+
+
+#### [windows 连接 WSL-ubuntu 里安装的 MySQL](https://blog.csdn.net/sexyluna/article/details/105007828)
 
 接着重启 mysql 服务，当以为大功告成时，mysql 再次给了我一个晴天霹雳，shell 上冒出以下错误
 
@@ -210,10 +275,8 @@ sudo service mysql start
 
 作者：JyLie
 链接：https://juejin.cn/post/6961800061210591268
-来源：稀土掘金
-著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
 
-[MySQL 在 WSL2 上的安装及配置 文章目录](https://blog.csdn.net/qq_41918762/article/details/112402106)
+#### [MySQL 在 WSL2 上的安装及配置 文章目录](https://blog.csdn.net/qq_41918762/article/details/112402106)
 
 ```mysql
 // 新建用户 newuser 密码为：password
@@ -248,6 +311,24 @@ use mysql;
 update mysql.user set host = '%' where user = 'root';
 flush privileges;
 ```
+
+**删除用户**
+
+```mysql
+mysql>Delete FROM user Where User='test' and Host='localhost';
+
+ mysql>flush privileges;
+
+ mysql>drop database testDB; //删除用户的数据库
+
+删除账户及权限：>drop user 用户名@'%';
+
+　　　　　　　　>drop user 用户名@ localhost; 
+```
+
+
+
+
 
 > ### 2-13 初始化 MySQL8.0.15
 
@@ -951,9 +1032,19 @@ classDiagram
 
 ### 4-1 使用命令行工具访问 MySQL
 
-### 4-2 使用 SQLyog 访问 MySQL
+```bash
+mysql -uroot -p -hlocalhhost
+# mysql -u<用户名> -p<密码> -h<网络ip地址>
+# -e<SQL(直接执行不进入命令行模式)> 
+```
+
+> ### 4-2 使用 SQLyog 访问 MySQL
+
+自选图形化界面软件
 
 ### 4-3 解锁 Python 的 MySQL 驱动类库
+
+[Python 环境安装教程](https://iknow.fun/2022/05/29/wsl2-javascript-python-vscode-huan-jing-pei-zhi-zong-jie/)
 
 ### 4-4 实战部署 Python 的 MySQL 驱动类库
 
