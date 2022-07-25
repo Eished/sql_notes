@@ -207,14 +207,14 @@ sudo mysql -uroot -proot
 
 查看用户名和 host：`select user,host from user;`
 
-1. 在 /etc/mysql 下面有一个 debain.cnf 文件中记录了 mysql 的初始用户和密码，您可以用此用户登录去修改 root 密码
+1. 在 `/etc/mysql` 下面有一个 debain.cnf 文件中记录了 mysql 的初始用户和密码，您可以用此用户登录去修改 root 密码
 
    - 本来没设置 root 密码可跳过这步，直接到第三步去设置新密码。
 
    > centos 的 /etc 下是没有这个文件的，debian.cnf 应该是 debian 和 ubuntu 系统下才有的。本来没设置 root 密码可跳过这步，直接到第三步修改为新密码。
 
    ```bash
-   (study) eis:/etc/mysql $ sudo cat debian.cnf
+   (study) eis:/etc/mysql $ sudo cat /etc/mysql/debian.cnf
    # Automatically generated for Debian scripts. DO NOT TOUCH!
    [client]
    host     = localhost
@@ -1309,8 +1309,15 @@ DROP {DATABASE | SCHEMA} [IF EXISTS] db_name
 ```mysql
 create database imc_db;
 
-# 给用户授权
+# 给用户授权，部分权限
 grant select,update,insert,drop on imc_db.* to mc_class@'172.22.%.%';
+grant create,alter,references,index on imc_db.* to mc_class@'172.22.%.%';
+
+# 给用户此数据库所有权限（没效果）
+grant all privileges on imc_db to mc_class@'172.22.%.%';
+
+flush privileges;
+# 需要重新登录
 ```
 
 
@@ -1482,6 +1489,7 @@ DROP [TEMPORARY] TABLE [IF EXISTS]
 
 ```mysql
 -- Active: 1658517114424@@172.22.164.224@3306@imc_db
+USE imc_db;
 
 create table
     imc_course (
@@ -1514,7 +1522,7 @@ create table
         chapter_name varchar(50) NOT NULL DEFAULT '' COMMENT ' 课程章节名 ',
         chapter_info varchar(200) NOT NULL DEFAULT '' COMMENT '章节说明',
         chapter_no TINYINT(2) UNSIGNED ZEROFILL NOT NULL DEFAULT 0 COMMENT '章节编号',
-        PRIMARY KEY (shapter_id),
+        PRIMARY KEY (chapter_id),
         UNIQUE KEY udx_courseid_chaptername (course_id, chapter_name)
     ) COMMENT '课程章节';
 
@@ -1645,7 +1653,28 @@ CREATE TABLE
 
 #### 索引维护语句
 
+```mysql
+CREATE [UNIQUE | FULLTEXT | SPATIAL] INDEX index_name
+    [index_type]
+    ON tbl_name (key_part,...)
+    [index_option]
+    [algorithm_option | lock_option] ...
+
+key_part: {col_name [(length)] | (expr)} [ASC | DESC]
+```
+
+```mysql
+DROP INDEX index_name ON tbl_name
+    [algorithm_option | lock_option] ...
+```
+
+- 最终都是 `alter` 执行语句
+
 #### 其它 DDL 语句的用法
+
+- 清空表：`TRUNCATE TABLE imc_note;`
+  - 不记录日志，无法恢复
+- 重命名表：`RENAME TABLE imc_note TO bak_imc_note;`
 
 ## 第 6 章 玩转 SQL 开发“道”与“术”之术篇
 
@@ -1654,47 +1683,260 @@ CREATE TABLE
 1. 【工作高阶技】With 语句；
 2. 【工作加薪技】窗口函数。
 
-### 6-1 DML 语句
+### 6-1 DML (Data Manipulation language)
 
-### 6-2 编写 Insert 语句的思路
+数据操作语言
 
-### 6-3 实战 insert 语句
+- 新增表中的数据：`insert into`
+- 删除表中的数据：`delete`
+- 修改表中的数据：`update`
+- 查询表中的数据：`select`
 
-### 6-4 使用 select 语句查询表中的数据
+### 6-2 Insert 语句
 
-### 6-5 使用 Where 子句过滤表中的行
+```mysql
+INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE]
+    [INTO] tbl_name
+    [PARTITION (partition_name [, partition_name] ...)]
+    [(col_name [, col_name] ...)]
+    { {VALUES | VALUE} (value_list) [, (value_list)] ...
+      |
+      VALUES row_constructor_list
+    }
+    [AS row_alias[(col_alias [, col_alias] ...)]]
+    [ON DUPLICATE KEY UPDATE assignment_list]
+```
 
-### 6-6 使用比较运算符过滤数据
+- 确认要把数据插入到那个表中 `imc_class` 
 
-### 6-7 MySQL 中的比较运算符-1
+- 确认表的数据库结构，那些列不能为`NULL`，那些列可以为`NULL`对于不能为`NULL`的列是否有默认值
 
-### 6-8 MySQL 中的比较运算符-2
+  - 查看表结构：`SHOW CREATE TABLE imc_class;`
+  - `class_name` 非空，有默认值，其它列不用填。
 
-### 6-9 使用逻辑运算符关联多个过滤条件
+- 确认对应插入列的插入值的清单 `values('MySQL'),('Redis')`
 
-### 6-10 MySQL 逻辑运算符-1
+- 编写 Insert 语句：
 
-### 6-11 MySQL 逻辑运算符-2
+  ```mysql
+  SHOW CREATE TABLE imc_class;
+  
+  INSERT INTO
+      imc_class(class_name)
+  values ('MySQL'), ('Redis'), ('MongoDB'), ('安全测试'), ('Oracle'), ('SQL Server'), ('Hbase') ON duplicate KEY
+  UPDATE add_time = current_time;
+  
+  SELECT * from imc_class;
+  
+  CREATE UNIQUE INDEX uqx_classname ON imc_class(class_name);
+  ```
+
+
+
+### 6-4 select 语句查询表中的数据
+
+```mysql
+SELECT 'Hello ','MySQL',2022+1;
+
+SELECT * FROM imc_db.imc_class;
+
+SELECT class_id,class_name FROM imc_db.imc_class;
+
+USE imc_db;
+
+SELECT class_id,class_name FROM imc_class;
+```
+
+
+
+### 6-5 Where 子句过滤表中的行
+
+使用 WorkBench 导入课程数据。
+
+![image-20220726000210086](全角度解读企业主流数据库MySQL8.0.assets/image-20220726000210086.png)
+
+使用 VSCode 导入课程数据。需要 root 登录。
+
+![image-20220726000503248](全角度解读企业主流数据库MySQL8.0.assets/image-20220726000503248.png)
+
+**查询出所课程名中包括MYSQL的课程的课程名称**
+
+```mysql
+SELECT 'Hello ','MySQL',2022+1;
+
+SELECT * FROM imc_db.imc_class;
+
+SELECT class_id,class_name FROM imc_db.imc_class;
+
+USE imc_db;
+
+SELECT class_id,class_name FROM imc_class;
+
+-- WHERE 语句
+
+-- % 代表通配符，任意数量字符
+
+SELECT title FROM imc_course WHERE title LIKE '%MYSQL%';
+```
+
+**编写查询语句的思路**
+
+- 首先确定我们要获取的数据存在那些表中
+  - 确定FROM子句
+- 其次是确定我们要取现表中的那些列
+  - 确定SELECT子句
+- 确认是否需要对表中的数据进行过滤
+  - 确定VHERE子句
+
+#### 6-6 比较运算符过滤数据
+
+| 操作符                  | 描述                                                         | 实例                   |
+| :---------------------- | :----------------------------------------------------------- | :--------------------- |
+| `=`                     | 等号，检测两个值是否相等，如果相等返回`true`                 | `(A = B)` 返回false。  |
+| `<>, !=`                | 不等于，检测两个值是否相等，如果不相等返回`true`             | `(A != B)` 返回 true。 |
+| `>`                     | 大于号，检测左边的值是否大于右边的值, 如果左边的值大于右边的值返回`true` | `(A > B)` 返回false。  |
+| `<`                     | 小于号，检测左边的值是否小于右边的值, 如果左边的值小于右边的值返回`true` | `(A < B)` 返回 true。  |
+| `>=`                    | 大于等于号，检测左边的值是否大于或等于右边的值, 如果左边的值大于或等于右边的值返回`true` | `(A >= B)` 返回false。 |
+| `<=`                    | 小于等于号，检测左边的值是否小于或等于右边的值, 如果左边的值小于或等于右边的值返回`true` | `(A <= B)` 返回 true。 |
+| `BETWEEN  min AND max`  | 列的值**大于等于**最小值，**小于等于**最大值                 | `BETWEEN 10 AND 20`    |
+| `IS NULL，IS NOT NULL;` | 是`NULL`或者不是`NULL`                                       |                        |
+| `LIKE，NOT LIKE`        | `%` 代表任何数量的字符，`_`代表任何一个字符                  |                        |
+| `IN，NOT IN`            | 判断列的值是否在指定的范围内                                 |                        |
+
+- 学习人数等于1000人的课程都有那些？
+
+  - 列出他们的课程标题和学习人数
+
+  ```mysql
+  SELECT title,study_cnt FROM imc_course WHERE study_cnt>1000;
+  
+  SELECT title, study_cnt
+  FROM imc_course
+  WHERE
+      study_cnt BETWEEN 1000 AND 2000;
+  ```
+
+- `IS NULL，IS NOT NULL;`
+
+  ```mysql
+  CREATE TABLE test_is(id int,c1 VARCHAR(10),PRIMARY KEY(id));
+  
+  INSERT INTO test_is VALUES(1,'a'),(2,'b'),(3,NULL);
+  
+  SELECT * from test_is WHERE c1=NULL;
+  
+  SELECT * from test_is WHERE c1 is NULL;
+  ```
+
+- `LIKE，NOT LIKE`
+
+  - `%` 代表任何数量的字符，`_`代表任何一个字符
+
+  ```mysql
+  SELECT 'this is mysql' LIKE '%mysql';
+  
+  SELECT 'this is mysql course' LIKE '%mysql%';
+  
+  SELECT 'this' LIKE '_hi_';
+  ```
+
+- `IN，NOT IN`
+
+  ```mysql
+  SELECT course_id, title
+  from imc_course
+  WHERE
+      course_id in (1, 3, 5, 7, 9);
+  
+  SELECT course_id, title
+  from imc_course
+  WHERE
+      course_id NOT IN (1, 3, 5, 7, 9);
+  ```
+
+
+
+#### 6-9 逻辑运算符关联多个过滤条件
+
+| 逻辑运算符 | 说明                                                         |
+| ---------- | ------------------------------------------------------------ |
+| `AND，&&`  | AND运算符两边的表达式都为真时，返回的结果才为真。            |
+| `OR，||`   | OR运算符两边的表达式有一条为真，返回的结果就为真。           |
+| `XOR`      | XOR(异或)运算符两边的表达式一真一假时返回真，两真两假时返回假。 |
+
+> 注意：任何运算符和NULL值运算结果都为NULL。
+
+如何合并`WHERE`子句中的多个过滤条件？
+
+- 查询出课程表中课程标题含有MySQL的，并且学习人数大于5000人的课程标题
+
+  - `title like '%mysql%'`
+  - `study_.cnt>5000`
+
+  ```mysql
+  SELECT title, study_cnt
+  FROM imc_course
+  WHERE
+      title LIKE '%mysql%' && study_cnt > 5000;
+  ```
+
+- 查询出课程表中课程标题含有MySQL的，或者学习人数大于5000人的课程标题
+
+  ```mysql
+  SELECT title, study_cnt
+  FROM imc_course
+  WHERE
+      title LIKE '%mysql%' || study_cnt > 5000;
+  ```
+
+- 查询出课程标题中含有MySQL关键字并且学习人数小于5000，课程标题中不含有MySOL关键词，但学习人数大于5000的课程，课程标题和学习人数
+
+  - 写两条SQL，或用 `XOR`
+
+  ```mysql
+  -- UNION ALL 拼接两次查询
+  
+  SELECT title, study_cnt
+  FROM imc_course
+  WHERE
+      title LIKE '%mysql%'
+      AND study_cnt < 5000
+  UNION ALL
+  SELECT title, study_cnt
+  FROM imc_course
+  WHERE
+      title NOT LIKE '%mysql%'
+      AND study_cnt > 5000;
+  
+  -- XOR
+  
+  SELECT title, study_cnt
+  FROM imc_course
+  WHERE
+      title LIKE '%mysql%'
+      AND study_cnt < 5000
+      XOR title NOT LIKE '%mysql%'
+      AND study_cnt > 5000;
+  ```
+
+
 
 ### 6-12 从多个表中查询数据
 
-### 6-13 使用内关联查询多个表中的数据
+#### 6-13 内关联查询多个表中的数据
 
-### 6-14 外联接查询
+#### 6-14 外联接查询
 
-### 6-15 外关联查询
+#### 6-15 外关联查询
 
-### 6-16 使用 Group by 分组查询结果
+### 6-16 Group by 分组查询结果
 
-### 6-17 分组统计查询
+> ### 6-17 分组统计查询
+>
 
-### 6-18 使用 having 子句过滤分组结果
+### 6-18 having 子句过滤分组结果
 
-### 6-19 MySQL 中的分组函数-1
-
-### 6-20 MySQL 中的分组函数-2
-
-### 6-21 MySQL 中的分组函数-3
+### 6-19 MySQL 中的分组函数
 
 ### 6-22 使用 order by 子句排序查询结果
 
@@ -1704,47 +1946,41 @@ CREATE TABLE
 
 ### 6-25 数据删除语句 Delete
 
-### 6-26 使用 Delete 语句删除数据
+#### 6-26 使用 Delete 语句删除数据
 
 ### 6-27 数据更新语句 Update
 
-### 6-28 使用 Update 语句修改数据
+#### 6-28 Update 语句修改数据
 
-### 6-29 使用 SQL 获取数据库时间
+### 6-29 SQL 内置功能语句
 
-### 6-30 使用 SQL 转换时间数据
+#### 获取数据库时间
 
-### 6-31 使用 SQL 进行时间计算
+#### 转换时间数据
 
-### 6-32 使用 SQL 提取部分时间值
+#### 进行时间计算
 
-### 6-33 使用 SQL 拼接字符串
+#### 提取部分时间值
 
-### 6-34 使用 SQL 判断字符串的长度
+#### 拼接字符串
 
-### 6-35 使用 SQL 截取字符串
+#### 判断字符串的长度
 
-### 6-36 使用 SQL 按分隔符处理数据
+#### 截取字符串
 
-### 6-37 MySQL 中的其它常用函数
+#### 按分隔符处理数据
 
-### 6-38 MySQL8.0 新增的公共表表达式
+#### MySQL 中的其它常用函数
 
-### 6-39 公共表表达式-1
+### MySQL8.0 新增的公共表表达式
 
-### 6-40 公共表表达式-2
+#### 6-39 公共表表达式
 
 ### 6-41 MySQL8.0 新增的窗口函数
 
-### 6-42 窗口函数-1
+#### 6-42 窗口函数
 
-### 6-43 窗口函数-2
-
-### 6-44 窗口函数-3
-
-### 6-45 SQL 开发中易犯的错误-1
-
-### 6-46 SQL 开发中易犯的错误-2
+### 6-45 SQL 开发中易犯的错误
 
 ### 6-47 章节总结
 

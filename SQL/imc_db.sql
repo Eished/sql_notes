@@ -1,4 +1,5 @@
 -- Active: 1658517114424@@172.22.164.224@3306@imc_db
+USE imc_db;
 
 create table
     imc_course (
@@ -31,7 +32,7 @@ create table
         chapter_name varchar(50) NOT NULL DEFAULT '' COMMENT ' 课程章节名 ',
         chapter_info varchar(200) NOT NULL DEFAULT '' COMMENT '章节说明',
         chapter_no TINYINT(2) UNSIGNED ZEROFILL NOT NULL DEFAULT 0 COMMENT '章节编号',
-        PRIMARY KEY (shapter_id),
+        PRIMARY KEY (chapter_id),
         UNIQUE KEY udx_courseid_chaptername (course_id, chapter_name)
     ) COMMENT '课程章节';
 

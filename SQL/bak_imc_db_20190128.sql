@@ -29,7 +29,7 @@ CREATE TABLE `imc_chapter` (
   `chapter_info` varchar(200) NOT NULL DEFAULT '' COMMENT '章节说明',
   `chapter_no` tinyint(2) unsigned zerofill NOT NULL DEFAULT '00' COMMENT '章节编号',
   PRIMARY KEY (`chapter_id`),
-  UNIQUE KEY `udx_couseid` (`course_id`,`chapter_name`)
+  UNIQUE KEY `udx_courseid` (`course_id`,`chapter_name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1330 DEFAULT CHARSET=utf8 COMMENT='课程章节';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
