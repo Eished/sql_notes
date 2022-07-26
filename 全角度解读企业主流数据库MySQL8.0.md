@@ -1105,6 +1105,8 @@ if __name__ == '__main__':
 
 ### 初识 SQL
 
+https://www.w3school.com.cn/sql/index.asp
+
 - 什么是 SQL：一种描述性语言。
 - SQL 语言的作用：对存储在 RDBMS 中的数据进行增删改查等操作。
 - 常用的 SQL 语言的种类：DCL、DDL、DML、TCL
@@ -1311,7 +1313,15 @@ create database imc_db;
 
 # 给用户授权，部分权限
 grant select,update,insert,drop on imc_db.* to mc_class@'172.22.%.%';
-grant create,create view,alter,references,index on imc_db.* to mc_class@'172.22.%.%';
+
+grant create,
+delete,
+create view,
+execute
+,
+    alter,
+    references,
+    index on imc_db.* to mc_class @'172.22.%.%';
 
 # 给用户此数据库所有权限（没效果）
 grant all privileges on imc_db to mc_class@'172.22.%.%';
@@ -1676,7 +1686,7 @@ DROP INDEX index_name ON tbl_name
   - 不记录日志，无法恢复
 - 重命名表：`RENAME TABLE imc_note TO bak_imc_note;`
 
-## 第 6 章 玩转 SQL 开发“道”与“术”之术篇
+## 第 6 章 DML
 
 本章带你玩转 SQL 开发，学习其实可以很快乐哦。围绕核心是“工作”较为高阶技能和加薪技能，主要是如下两部分：
 
@@ -2103,17 +2113,30 @@ SELECT sum(study_cnt)/COUNT(study_cnt) FROM imc_course;
 SELECT AVG(study_cnt) FROM imc_course;
 ```
 
-实战：利用课程评价表中的评分，更新课程表中课程的评分（待学习）
+实战：利用课程评价表中的评分，更新课程表中课程的评分（**待学习**）
 
 ```mysql
-SELECT
-    course_id,
-    AVG(content_score),
-    AVG(level_score),
-    AVG(logic_score),
-    AVG(score)
-FROM imc_classvalue
-GROUP BY course_id;
+UPDATE imc_course a
+    JOIN (
+        SELECT
+            course_id,
+            AVG(content_score) AS avg_content,
+            AVG(level_score) AS avg_level,
+            AVG(logic_score) AS avg_logic,
+            AVG(score) AS avg_score
+        FROM imc_classvalue
+        GROUP BY
+            course_id
+    ) b ON a.course_id = b.course_id
+SET
+    a.content_score = b.avg_content,
+    a.level_score = b.avg_level,
+    a.logic_score = b.avg_logic,
+    a.score = b.avg_score;
+
+SHOW WARNINGS;
+
+SELECT * FROM imc_course;
 ```
 
 实战 `MIN/MAX`：统计学习人数最多/最少的课程
@@ -2208,39 +2231,411 @@ SELECT * from vm_course;
 
 
 
-### 6-25 数据删除语句 Delete
+### 6-25 Delete 语句删除数据
 
-#### 6-26 Delete 语句删除数据
+```mysql
+DELETE [LOW_PRIORITY] [QUICK] [IGNORE] FROM tbl_name [[AS] tbl_alias]
+    [PARTITION (partition_name [, partition_name] ...)]
+    [WHERE where_condition]
+    [ORDER BY ...]
+    [LIMIT row_count]
+```
 
-### 6-27 数据更新语句 Update
+- 确定要删除的数据存储在那张表中 `FROM` 子句
+- 确认是否只删除有限条数据 `ORDER BY...LIMIT` 子句
 
-#### 6-28 Update 语句修改数据
 
-### 6-29 SQL 内置功能语句
+
+实战：删除课程表中没有章节信息的课程。
+
+- 先写`select`语句，再把`select`改成`delete`
+
+```mysql
+SELECT *
+FROM imc_course a
+    LEFT JOIN imc_chapter b ON a.course_id = b.course_id
+WHERE b.chapter_id is NULL;
+
+DELETE a
+FROM imc_course a
+    LEFT JOIN imc_chapter b ON a.course_id = b.course_id
+WHERE b.chapter_id is NULL;
+```
+
+
+
+实战：删除课程方向表中重复的课程方向，保留方向ID最小的一条，并在方向名称上增加唯一索引。
+
+```mysql
+SHOW CREATE TABLE imc_type;
+
+SELECT * FROM imc_type;
+
+INSERT INTO
+    imc_type(type_name)
+VALUES ('前端开发'), ('后端开发'), ('移动开发'), ('数据库');
+
+SELECT *
+FROM imc_type a
+    JOIN(
+        SELECT
+            type_name,
+            COUNT(*),
+            MIN(type_id) AS min_type_id
+        FROM imc_type
+        GROUP BY type_name
+        HAVING
+            COUNT(*) > 1
+    ) b ON a.type_name = b.type_name
+    AND a.type_id > min_type_id;
+
+DELETE a
+FROM imc_type a
+    JOIN(
+        SELECT
+            type_name,
+            COUNT(*),
+            MIN(type_id) AS min_type_id
+        FROM imc_type
+        GROUP BY type_name
+        HAVING
+            COUNT(*) > 1
+    ) b ON a.type_name = b.type_name
+    AND a.type_id > min_type_id;
+    
+CREATE UNIQUE INDEX uqx_typename ON imc_type(type_name);
+```
+
+
+
+### 6-27 Update 语句修改数据
+
+```mysql
+UPDATE [LOW_PRIORITY] [IGNORE] table_reference
+    SET assignment_list
+    [WHERE where_condition]
+    [ORDER BY ...]
+    [LIMIT row_count]
+```
+
+- 确定要更新的数据存储在哪张表中 `update` 字句
+- 确定要列新的列及值 `SET` 子句
+- 确认更新数据的条件 `WHERE` 子句
+
+
+
+实战：冻结用户 `沙占` 的账号。
+
+```mysql
+SELECT user_nick,user_status FROM imc_user WHERE user_nick='沙占';
+
+UPDATE imc_user SET user_status=0 WHERE user_nick='沙占';
+```
+
+
+
+实战：随机推荐10门课程
+
+```mysql
+ALTER TABLE imc_course
+ADD
+    is_recommand TINYINT DEFAULT 0 COMMENT '0不推荐，1推荐';
+
+SHOW CREATE TABLE imc_course;
+
+SELECT course_id FROM imc_course ORDER BY RAND() LIMIT 10;
+
+UPDATE imc_course SET is_recommand=1 ORDER BY RAND() LIMIT 10;
+
+SELECT course_id,title FROM imc_course WHERE is_recommand=1;
+```
+
+
+
+### 6-29 SQL 系统函数
+
+字符串处理函数
+
+| 函数名                             | 说明                                                    |
+| ---------------------------------- | ------------------------------------------------------- |
+| `CONCAT(str1,str2,...)`            | 把字符串`str1,str2`连接成一个字符串                     |
+| `CONCAT_WS(sep,str1,str2,...)`     | 用指定的分割符`sep`连接字符串                           |
+| `CHAR LENGTH(str)`                 | 返回字符串`str`的**字符**个数                           |
+| `LENGTH(str)`                      | 返回字符串`str`的**字节**个数                           |
+| `FORMAT(X,D[,locale])`             | 将数字N格式化为格式，如`“#，#，###”`，并舍入到`D`位小数 |
+| `LEFT(str，len)/RIGHT(str，len)`   | 从字符串的左/右边起返回`len`长度的子字符串              |
+| `SUBSTRING(str,pos,[len])`         | 从字符串`str`的`pos`位置起返回长度为`len`的子串         |
+| `SUBSTRING_INDEX(str,delim,count)` | 返回字符串`str`按`delim`分割的前`count`个子字符串       |
+| `LOCATE(substr,str)`               | 在字符串`str`中返回子串`substr`第一次出现的位置         |
+| `TRIM([remstr FROM]str)`           | 从字符串`str`两端删除不需要的字符`remstr`               |
+
+日期处理函数
+
+| 函数名                               | 说明                                                         |
+| ------------------------------------ | ------------------------------------------------------------ |
+| `CURDATE()/CURTIME()`                | 返回当前日期/返回当前时间                                    |
+| `NOW()`                              | 返回当前的日期和时间                                         |
+| `DATE_FORMAT(date,format)`           | 按照[^format]的格式，对日期`date`进行格式化                  |
+| `SEC_TO_TIME(seconds)`               | 把秒数转换为（小时：分：秒）                                 |
+| `TIME_TO_SEC(time)`                  | 把时间（小时：分：秒）转换为秒数                             |
+| `DATEDIFF(date1,date2)`              | 返回date1和date2两个日期相差的天数                           |
+| `DATE_ADD(date,INTER VAL expr unit)` | 对给定的日期增加或减少指定的时间单元`unt：DAY天/HOUR小时/MINUTES分钟/SECOND秒` |
+| `EXTRACT(unit FROM date)`            | 返回日期`date`的指定部分                                     |
+| `UNIX_TIMESTAMP()`                   | 返回unix时间戳                                               |
+| `FROM_UNIXTIME()`                    | 把Unix时间戳转换为日期时间                                   |
+
+[^format]: `%Y:四位的年 %m:月份(00-12) %d:天(00-31) %H:小时(00-24) %i:分钟(00-59) %s:秒(00-59)`
+
+*date* 参数是合法的日期。*format* 规定日期/时间的输出格式。
+
+可以使用的格式有：
+
+| 格式 | 描述                                           |
+| :--- | :--------------------------------------------- |
+| %a   | 缩写星期名                                     |
+| %b   | 缩写月名                                       |
+| %c   | 月，数值                                       |
+| %D   | 带有英文前缀的月中的天                         |
+| %d   | 月的天，数值(00-31)                            |
+| %e   | 月的天，数值(0-31)                             |
+| %f   | 微秒                                           |
+| %H   | 小时 (00-23)                                   |
+| %h   | 小时 (01-12)                                   |
+| %I   | 小时 (01-12)                                   |
+| %i   | 分钟，数值(00-59)                              |
+| %j   | 年的天 (001-366)                               |
+| %k   | 小时 (0-23)                                    |
+| %l   | 小时 (1-12)                                    |
+| %M   | 月名                                           |
+| %m   | 月，数值(00-12)                                |
+| %p   | AM 或 PM                                       |
+| %r   | 时间，12-小时（hh:mm:ss AM 或 PM）             |
+| %S   | 秒(00-59)                                      |
+| %s   | 秒(00-59)                                      |
+| %T   | 时间, 24-小时 (hh:mm:ss)                       |
+| %U   | 周 (00-53) 星期日是一周的第一天                |
+| %u   | 周 (00-53) 星期一是一周的第一天                |
+| %V   | 周 (01-53) 星期日是一周的第一天，与 %X 使用    |
+| %v   | 周 (01-53) 星期一是一周的第一天，与 %x 使用    |
+| %W   | 星期名                                         |
+| %w   | 周的天 （0=星期日, 6=星期六）                  |
+| %X   | 年，其中的星期日是周的第一天，4 位，与 %V 使用 |
+| %x   | 年，其中的星期一是周的第一天，4 位，与 %v 使用 |
+| %Y   | 年，4 位                                       |
+| %y   | 年，2 位                                       |
+
+
 
 #### 获取数据库时间
 
+实战：
+
+```mysql
+SELECT DATE_FORMAT(NOW(),'%Y-%m-%d %H:%i:%s');
+```
+
+
+
 #### 转换时间数据
+
+实战：
+
+```mysql
+SELECT SEC_TO_TIME('60'),TIME_TO_SEC('1:00:00') ;
+```
+
+
 
 #### 进行时间计算
 
+实战：计算每门课程，上线时间距当前时间的天数。
+
+> `ORDER BY 2` 按照select的第二个字段排序
+
+```mysql
+SELECT
+    title,
+    DATEDIFF(NOW(), online_time)
+FROM imc_course
+ORDER BY 2 DESC;
+
+SELECT
+    NOW(),
+    -- 当前时间加一天 
+    DATE_ADD(NOW(), INTERVAL 1 DAY),
+    -- 当前时间加一年 
+    DATE_ADD(NOW(), INTERVAL 1 YEAR),
+    -- 当前时间减一个半小时
+    DATE_ADD(
+        NOW(),
+        INTERVAL '-1:30' HOUR_MINUTE
+    );
+```
+
+
+
 #### 提取部分时间值
+
+实战：
+
+```mysql
+SELECT
+    NOW(),
+    -- 年份
+    EXTRACT(
+        YEAR
+        FROM
+            NOW()
+    ),
+    EXTRACT(
+        MONTH
+        FROM
+            NOW()
+    ),
+    EXTRACT(
+        DAY
+        FROM
+            NOW()
+    ),
+    EXTRACT(
+        HOUR
+        FROM NOW()
+    );
+```
+
+
 
 #### 拼接字符串
 
+实战：出于SE0优化的自地，我们需要合并显示课程分类名称和课程标题
+
+```mysql
+SELECT
+    CONCAT_WS('-', class_name, title)
+FROM imc_course a
+    JOIN imc_class b ON a.class_id = b.class_id;
+```
+
+
+
 #### 判断字符串的长度
+
+实战：
+
+```mysql
+SELECT
+    class_name,
+    LENGTH(class_name),
+    CHAR_LENGTH(class_name)
+FROM imc_class;
+```
+
+
+
+#### 数字格式化为字符串
+
+```mysql
+SELECT FORMAT(123456.789,4);
+```
+
+
 
 #### 截取字符串
 
+实战：
+
+```mysql
+SELECT LEFT('imooc',1);
+
+SELECT RIGHT('imooc',4);
+
+SELECT SUBSTRING('imooc',2);
+
+SELECT TRIM(' imooc '),TRIM('x' from 'xxxximoocxx');
+```
+
+
+
 #### 按分隔符处理数据
+
+实战：截取课程标题重中横线之前的部分
+
+```mysql
+SELECT SUBSTRING_INDEX('192.168.0.100','.',-2);
+
+SELECT
+    title,
+    LOCATE('-', title),
+    SUBSTRING(title, 1, LOCATE('-', title) -1)
+FROM imc_course;
+```
+
+
+
+
 
 #### MySQL 中的其它常用函数
 
+| 函数名                                                       | 说明                                                |
+| ------------------------------------------------------------ | --------------------------------------------------- |
+| `ROUND(X,D)`                                                 | 对数值进行四舍五入保留D位小数                       |
+| `RAND()`                                                     | 返回一个在0和1之间的随机数                          |
+| `CASE WHEN [condition]` <br />`THEN result` <br />`[WHEN[condition] THEN result...[ELSE result]END` | 用于实现其它语言中的case.when功能，提供数据流控制。 |
+| `MD5(str)`                                                   | 返回str的MD5值                                      |
+
+
+
+实战：显示每个用户的昵称和性别。
+
+```mysql
+SELECT
+    user_nick,
+    CASE
+        WHEN sex = 1 THEN '男'
+        WHEN sex = 0 THEN '女'
+        ELSE '未知'
+    END AS '性别'
+FROM imc_user;
+
+SELECT
+    user_nick,
+    CASE
+        WHEN sex = 1 THEN '男'
+        WHEN sex = 0 THEN '女'
+        ELSE '未知'
+    END AS '性别'
+FROM imc_user
+WHERE
+    CASE
+        WHEN sex = 1 THEN '男'
+        WHEN sex = 0 THEN '女'
+        ELSE '未知'
+    END = '男';
+```
+
+
+
 ### MySQL8.0 新增的公共表表达式
+
+实战：
+
+```
+
+```
+
+
 
 #### 6-39 公共表表达式
 
 ### 6-41 MySQL8.0 新增的窗口函数
+
+实战：
+
+```
+
+```
+
+
 
 #### 6-42 窗口函数
 

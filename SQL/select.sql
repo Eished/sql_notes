@@ -202,14 +202,27 @@ SELECT AVG(study_cnt) FROM imc_course;
 
 -- 综合运用
 
-SELECT
-    course_id,
-    AVG(content_score),
-    AVG(level_score),
-    AVG(logic_score),
-    AVG(score)
-FROM imc_classvalue
-GROUP BY course_id;
+UPDATE imc_course a
+    JOIN (
+        SELECT
+            course_id,
+            AVG(content_score) AS avg_content,
+            AVG(level_score) AS avg_level,
+            AVG(logic_score) AS avg_logic,
+            AVG(score) AS avg_score
+        FROM imc_classvalue
+        GROUP BY
+            course_id
+    ) b ON a.course_id = b.course_id
+SET
+    a.content_score = b.avg_content,
+    a.level_score = b.avg_level,
+    a.logic_score = b.avg_logic,
+    a.score = b.avg_score;
+
+SHOW WARNINGS;
+
+SELECT * FROM imc_course;
 
 -- MAX
 
@@ -243,6 +256,210 @@ CREATE VIEW vm_course AS
 	FROM imc_course a
 	    JOIN imc_class b ON b.class_id = a.class_id
 	    JOIN imc_type c ON c.type_id = a.type_id
-	    JOIN imc_level d ON d.level_id = a.level_id;
+	    JOIN imc_level d ON d.level_id = a.
+level_id; 
 
 SELECT * from vm_course;
+
+-- DELETE
+
+SELECT *
+FROM imc_course a
+    LEFT JOIN imc_chapter b ON a.course_id = b.course_id
+WHERE b.chapter_id is NULL;
+
+DELETE a
+FROM imc_course a
+    LEFT JOIN imc_chapter b ON a.course_id = b.course_id
+WHERE b.chapter_id is NULL;
+
+-- DELETE 实战
+
+SHOW CREATE TABLE imc_type;
+
+SELECT * FROM imc_type;
+
+INSERT INTO
+    imc_type(type_name)
+VALUES ('前端开发'), ('后端开发'), ('移动开发'), ('数据库');
+
+SELECT *
+FROM imc_type a
+    JOIN(
+        SELECT
+            type_name,
+            COUNT(*),
+            MIN(type_id) AS min_type_id
+        FROM imc_type
+        GROUP BY type_name
+        HAVING
+            COUNT(*) > 1
+    ) b ON a.type_name = b.type_name
+    AND a.type_id > min_type_id;
+
+DELETE a
+FROM imc_type a
+    JOIN(
+        SELECT
+            type_name,
+            COUNT(*),
+            MIN(type_id) AS min_type_id
+        FROM imc_type
+        GROUP BY type_name
+        HAVING
+            COUNT(*) > 1
+    ) b ON a.type_name = b.type_name
+    AND a.type_id > min_type_id;
+
+CREATE UNIQUE INDEX uqx_typename ON imc_type(type_name);
+
+-- UPDATE
+
+SELECT user_nick,user_status FROM imc_user WHERE user_nick='沙占';
+
+UPDATE imc_user SET user_status=0 WHERE user_nick='沙占';
+
+-- UPDATE 实战
+
+ALTER TABLE imc_course
+ADD
+    is_recommand TINYINT DEFAULT 0 COMMENT '0不推荐，1推荐';
+
+SHOW CREATE TABLE imc_course;
+
+SELECT course_id FROM imc_course ORDER BY RAND() LIMIT 10;
+
+UPDATE imc_course SET is_recommand=1 ORDER BY RAND() LIMIT 10;
+
+SELECT course_id,title FROM imc_course WHERE is_recommand=1;
+
+-- 系统函数
+
+-- 时间函数
+
+SELECT CURRENT_DATE(),CURTIME(),NOW();
+
+-- DATE_FORMAT
+
+SELECT DATE_FORMAT(NOW(),'%Y-%m-%d %H:%i:%s');
+
+-- CONVERT TIME
+
+SELECT SEC_TO_TIME('60'),TIME_TO_SEC('1:00:00');
+
+-- DATEDIFF
+
+SELECT
+    title,
+    DATEDIFF(NOW(), online_time)
+FROM imc_course
+ORDER BY 2 DESC;
+
+SELECT
+    NOW(),
+    -- 当前时间加一天 
+    DATE_ADD(NOW(), INTERVAL 1 DAY),
+    -- 当前时间加一年 
+    DATE_ADD(NOW(), INTERVAL 1 YEAR),
+    -- 当前时间减一个半小时
+    DATE_ADD(
+        NOW(),
+        INTERVAL '-1:30' HOUR_MINUTE
+    );
+
+-- EXTRACT
+
+SELECT
+    NOW(),
+    -- 年份
+    EXTRACT(
+        YEAR
+        FROM
+            NOW()
+    ),
+    EXTRACT(
+        MONTH
+        FROM
+            NOW()
+    ),
+    EXTRACT(
+        DAY
+        FROM
+            NOW()
+    ),
+    EXTRACT(
+        HOUR
+        FROM NOW()
+    );
+
+-- CONCAT
+
+SELECT
+    CONCAT_WS('-', class_name, title)
+FROM imc_course a
+    JOIN imc_class b ON a.class_id = b.class_id;
+
+-- LENGTH CHARLENGTH
+
+SELECT
+    class_name,
+    LENGTH(class_name),
+    CHAR_LENGTH(class_name)
+FROM imc_class;
+
+-- FORMAT
+
+SELECT FORMAT(123456.789,4);
+
+-- LEFT RIGHT
+
+SELECT LEFT('imooc',1);
+
+SELECT RIGHT('imooc',4);
+
+-- SUBSTRING
+
+SELECT SUBSTRING('imooc',2);
+
+-- SUBSTRING_INDEX
+
+SELECT SUBSTRING_INDEX('192.168.0.100','.',-2);
+
+-- LOCATE
+
+SELECT
+    title,
+    LOCATE('-', title),
+    SUBSTRING(title, 1, LOCATE('-', title) -1),
+    SUBSTRING_INDEX(title, '-', 1)
+FROM imc_course;
+
+-- TRIM
+
+SELECT TRIM(' imooc '),TRIM('x' from 'xxxximoocxx');
+
+-- CASE WHEN
+
+SELECT
+    user_nick,
+    CASE
+        WHEN sex = 1 THEN '男'
+        WHEN sex = 0 THEN '女'
+        ELSE '未知'
+    END AS '性别'
+FROM imc_user;
+
+SELECT
+    user_nick,
+    CASE
+        WHEN sex = 1 THEN '男'
+        WHEN sex = 0 THEN '女'
+        ELSE '未知'
+    END AS '性别'
+FROM imc_user
+WHERE
+    CASE
+        WHEN sex = 1 THEN '男'
+        WHEN sex = 0 THEN '女'
+        ELSE '未知'
+    END = '男';

@@ -10,7 +10,14 @@ grant all privileges on imc_db to mc_class@'172.22.%.%';
 
 grant select,update,insert,drop on imc_db.* to mc_class@'172.22.%.%';
 
-grant create,create view,alter,references,index on imc_db.* to mc_class@'172.22.%.%';
+grant create,
+delete,
+create view,
+execute
+,
+    alter,
+    references,
+    index on imc_db.* to mc_class @'172.22.%.%';
 
 flush privileges;
 
