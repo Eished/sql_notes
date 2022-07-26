@@ -1304,20 +1304,20 @@ DROP {DATABASE | SCHEMA} [IF EXISTS] db_name
   - 排序规则
 - 不能改数据库名称
 
-
+#### 给 imc 用户授权
 
 ```mysql
 create database imc_db;
 
 # 给用户授权，部分权限
 grant select,update,insert,drop on imc_db.* to mc_class@'172.22.%.%';
-grant create,alter,references,index on imc_db.* to mc_class@'172.22.%.%';
+grant create,create view,alter,references,index on imc_db.* to mc_class@'172.22.%.%';
 
 # 给用户此数据库所有权限（没效果）
 grant all privileges on imc_db to mc_class@'172.22.%.%';
 
 flush privileges;
-# 需要重新登录
+-- root 用户执行后，mc_class 重新登录生效
 ```
 
 
@@ -1788,7 +1788,7 @@ SELECT title FROM imc_course WHERE title LIKE '%MYSQL%';
 - 确认是否需要对表中的数据进行过滤
   - 确定VHERE子句
 
-#### 6-6 比较运算符过滤数据
+#### 比较运算符过滤数据
 
 | 操作符                  | 描述                                                         | 实例                   |
 | :---------------------- | :----------------------------------------------------------- | :--------------------- |
@@ -1856,7 +1856,7 @@ SELECT title FROM imc_course WHERE title LIKE '%MYSQL%';
 
 
 
-#### 6-9 逻辑运算符关联多个过滤条件
+#### 逻辑运算符关联多个过滤条件
 
 | 逻辑运算符 | 说明                                                         |
 | ---------- | ------------------------------------------------------------ |
@@ -1923,30 +1923,294 @@ SELECT title FROM imc_course WHERE title LIKE '%MYSQL%';
 
 ### 6-12 从多个表中查询数据
 
-#### 6-13 内关联查询多个表中的数据
+如何从多个表中获取数据？
 
-#### 6-14 外联接查询
+- 表与表之间要存在一定的关联关系。
 
-#### 6-15 外关联查询
 
-### 6-16 Group by 分组查询结果
 
-> ### 6-17 分组统计查询
->
+JOIN 按照功能大致分为如下三类：
 
-### 6-18 having 子句过滤分组结果
+- **INNER JOIN（内连接,或等值连接）**：获取两个表中字段匹配关系的记录。
+- **LEFT JOIN（左连接）：**获取左表所有记录，即使右表没有对应匹配的记录。
+- **RIGHT JOIN（右连接）：** 与 LEFT JOIN 相反，用于获取右表所有记录，即使左表没有对应匹配的记录。
+
+#### INNER JOIN 内关联查询
+
+INNER JOIN（内连接,或等值连接）：获取两个表中字段匹配关系的记录。
+
+![img](全角度解读企业主流数据库MySQL8.0.assets/img_innerjoin.gif)
+
+- 查询出MySQL课程的课程ID，课程名称和章节名称
+
+  ```mysql
+  SELECT
+      a.course_id,
+      a.title,
+      b.chapter_name
+  FROM imc_course a
+      JOIN imc_chapter b ON b.course_id = a.course_id
+  WHERE a.title LIKE '%mysql%';
+  
+  INSERT INTO
+      imc_course(
+          title,
+          title_desc,
+          type_id,
+          class_id,
+          level_id,
+          online_time,
+          user_id
+      )
+  VALUES (
+          'MySQL 关联测试',
+          '测试 MySQL 关联查询',
+          8,
+          1,
+          1,
+          NOW(),
+          29
+      );
+  ```
+
+  
+
+
+
+#### OUTER JOIN 外联接查询
+
+LEFT JOIN
+
+![image-20220726131228934](全角度解读企业主流数据库MySQL8.0.assets/image-20220726131228934.png)
+
+- LEFT JOIN（左连接）：获取左表所有记录，即使右表没有对应匹配的记录。右表不匹配返回空，匹配则返回数据。
+
+  - 查询table2可能没有，table1有的数据。
+  - 询出只存在于课程表中，但是不存在于章节表中的课程的课程名称和课程ID信息
+
+  ```mysql
+  -- 普通写法
+  
+  SELECT a.course_id, a.title
+  FROM imc_course a
+  WHERE a.course_id NOT IN (
+          SELECT b.course_id
+          FROM imc_chapter b
+      );
+  
+  -- LEFT JOIN
+  
+  SELECT a.course_id, a.title
+  FROM imc_course a
+      LEFT JOIN imc_chapter b on b.course_id = a.course_id
+  WHERE b.course_id IS NULL;
+  ```
+
+RIGHT JOIN
+
+![image-20220726131141834](全角度解读企业主流数据库MySQL8.0.assets/image-20220726131141834.png)
+
+- RIGHT JOIN（右连接）： 与 LEFT JOIN 相反，用于获取右表所有记录，即使左表没有对应匹配的记录。左表不匹配返回空，匹配则返回数据。左表不匹配返回空。
+
+  - 查询table1可能没有，table2有的数据。
+
+  ```mysql
+  SELECT a.course_id, a.title
+  FROM imc_chapter b
+      RIGHT JOIN imc_course a on b.course_id = a.course_id
+  WHERE b.course_id IS NULL;
+  ```
+
+  
+
+### 6-16 Group by having 分组查询结果
+
+`GROUP BY...HAVING`子句的作用
+
+- 把结果集按某些列分成不同的组，并对分组后的数据进行聚合操作
+  - 非聚合函数列都写在`GROUP BY`后面
+- 可以通过可选的`HAVING`子句对聚合后的数据进行过滤
+
+
+
+实战 `GROUP BY`：统计每个分类下不同难度的课程的数量。
+
+- ```mysql
+  SHOW VARIABLES LIKE 'sql_mode';
+  
+  SET SESSION sql_mode='ONLY_FULL_GROUP_BY';
+  
+  SELECT
+      level_name,
+      class_name,
+      COUNT(*)
+  FROM imc_course a
+      JOIN imc_class b ON b.class_id = a.class_id
+      JOIN imc_level c on c.level_id = a.level_id
+  GROUP BY level_name,class_name;
+  ```
+
+实战 `HAVING`：统计每个分类下课程大于3门的难度有那些。
+
+- ```mysql
+  SELECT
+      level_name,
+      class_name,
+      COUNT(*)
+  FROM imc_course a
+      JOIN imc_class b ON b.class_id = a.class_id
+      JOIN imc_level c on c.level_id = a.level_id
+  GROUP BY
+      level_name,
+      class_name
+  HAVING COUNT(*) > 3;
+  ```
+
+  
 
 ### 6-19 MySQL 中的分组函数
 
+| 聚合函数              | 说明                                   |
+| --------------------- | -------------------------------------- |
+| `COUNT(*)/COUNT(col)` | 计算符合条件的数据行数                 |
+| `SUM(col_name)`       | 计算表中符合条件的数值列的合计值       |
+| `AVG(col_name)`       | 计算表中符合条件的数值列的平均值       |
+| `MAX(col_name)`       | 计算表中符合条件的任意列中数据的最大值 |
+| `MIN(col_name)`       | 计算表中符合条件的任意列中数据的最小值 |
+
+实战 `COUNT`：统计课程表的总课程数
+
+```mysql
+SELECT COUNT(*),COUNT(DISTINCT user_id) FROM imc_course;
+```
+
+实战 `SUM`：统计出所有课程总的学习人数，以及不同难度下分组
+
+```mysql
+SELECT
+    b.level_name,
+    SUM(study_cnt)
+FROM imc_course a
+    JOIN imc_level b ON b.level_id = a.level_id
+GROUP BY level_name;
+```
+
+实战 `AVG`：统计出每门课程的平均学习人数
+
+```mysql
+SELECT sum(study_cnt)/COUNT(study_cnt) FROM imc_course;
+
+SELECT AVG(study_cnt) FROM imc_course;
+```
+
+实战：利用课程评价表中的评分，更新课程表中课程的评分（待学习）
+
+```mysql
+SELECT
+    course_id,
+    AVG(content_score),
+    AVG(level_score),
+    AVG(logic_score),
+    AVG(score)
+FROM imc_classvalue
+GROUP BY course_id;
+```
+
+实战 `MIN/MAX`：统计学习人数最多/最少的课程
+
+```mysql
+SELECT title, study_cnt
+from imc_course
+WHERE study_cnt = (
+        SELECT MAX(study_cnt)
+        FROM imc_course
+    );
+    
+SELECT title, study_cnt
+from imc_course
+WHERE study_cnt = (
+        SELECT MIN(study_cnt)
+        FROM imc_course
+    );
+```
+
+
+
 ### 6-22 使用 order by 子句排序查询结果
+
+InnoDB 默认按主键顺序排列。
+
+- 使用`ORDER BY`子句是对查询结果进行排序的最安全方法。
+- 列名后增加ASC关键字指定按该列的升序进行排序，或是指定`DESC`、`ASC` 关键字指定按该列的降序进行排序
+- `Order by`子句也可以使用`select`子句中未出现的列或是函数
+
+
+
+实战：查询出每门课程的学习人数并按学习人数从高到低排列
+
+```mysql
+SELECT title, study_cnt from imc_course ORDER BY study_cnt DESC;
+```
+
+
 
 ### 6-23 使用 Limit 子句限制返回的行数
 
-### 6-24 使用 Create View 语句创建视图
+- 常用于数据列表分页
+
+- 一定要和`order by`子句配合使用
+
+- `limit`起始偏移量，结果集的行数
+
+
+
+实战：分页返回课程ID和课程名称，每页返回10行记录
+
+```mysql
+SELECT course_id, title
+FROM imc_course
+ORDER BY course_id
+LIMIT 10, 10;
+```
+
+
+
+### 6-24 Create View 语句创建视图
+
+```mysql
+CREATE
+    [OR REPLACE]
+    [ALGORITHM = {UNDEFINED | MERGE | TEMPTABLE}]
+    [DEFINER = user]
+    [SQL SECURITY { DEFINER | INVOKER }]
+    VIEW view_name [(column_list)]
+    AS select_statement
+    [WITH [CASCADED | LOCAL] CHECK OPTION]
+```
+
+实战：是文一个包括课程D，课程名称，课程分类，课程方向以及课程难度的视图
+
+```mysql
+CREATE VIEW vm_course AS 
+	SELECT
+	    a.course_id,
+	    a.title,
+	    b.class_name,
+	    c.type_name,
+	    d.level_name
+	FROM imc_course a
+	    JOIN imc_class b ON b.class_id = a.class_id
+	    JOIN imc_type c ON c.type_id = a.type_id
+	    JOIN imc_level d ON d.level_id = a.level_id;
+
+SELECT * from vm_course;
+```
+
+
 
 ### 6-25 数据删除语句 Delete
 
-#### 6-26 使用 Delete 语句删除数据
+#### 6-26 Delete 语句删除数据
 
 ### 6-27 数据更新语句 Update
 

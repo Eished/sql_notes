@@ -10,13 +10,11 @@ grant all privileges on imc_db to mc_class@'172.22.%.%';
 
 grant select,update,insert,drop on imc_db.* to mc_class@'172.22.%.%';
 
-grant
-    create,
-    alter,
-    references,
-    index on imc_db.* to mc_class @'172.22.%.%';
+grant create,create view,alter,references,index on imc_db.* to mc_class@'172.22.%.%';
 
 flush privileges;
+
+-- root 用户执行后，mc_class 重新登录生效
 
 SHOW CREATE TABLE imc_class;
 

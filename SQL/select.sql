@@ -96,3 +96,153 @@ WHERE
     AND study_cnt < 5000
     XOR title NOT LIKE '%mysql%'
     AND study_cnt > 5000;
+
+-- JOIN
+
+INSERT INTO
+    imc_course(
+        title,
+        title_desc,
+        type_id,
+        class_id,
+        level_id,
+        online_time,
+        user_id
+    )
+VALUES (
+        'MySQL 关联测试',
+        '测试 MySQL 关联查询',
+        8,
+        1,
+        1,
+        NOW(),
+        29
+    );
+
+SELECT
+    a.course_id,
+    a.title,
+    b.chapter_name
+FROM imc_course a
+    LEFT JOIN imc_chapter b ON b.course_id = a.course_id
+WHERE a.title like '%MySQL%';
+
+-- 普通写法
+
+SELECT a.course_id, a.title
+FROM imc_course a
+WHERE a.course_id NOT IN (
+        SELECT b.course_id
+        FROM imc_chapter b
+    );
+
+-- LEFT JOIN
+
+SELECT a.course_id, a.title
+FROM imc_course a
+    LEFT JOIN imc_chapter b on b.course_id = a.course_id
+WHERE b.course_id IS NULL;
+
+-- RIGHT JOIN
+
+SELECT a.course_id, a.title
+FROM imc_chapter b
+    RIGHT JOIN imc_course a on b.course_id = a.course_id
+WHERE b.course_id IS NULL;
+
+-- GROUP BY
+
+SHOW VARIABLES LIKE 'sql_mode';
+
+SET SESSION sql_mode='ONLY_FULL_GROUP_BY';
+
+SELECT
+    level_name,
+    class_name,
+    COUNT(*)
+FROM imc_course a
+    JOIN imc_class b ON b.class_id = a.class_id
+    JOIN imc_level c on c.level_id = a.level_id
+GROUP BY
+    level_name,
+    class_name;
+
+-- GROUP BY HAVING
+
+SELECT
+    level_name,
+    class_name,
+    COUNT(*)
+FROM imc_course a
+    JOIN imc_class b ON b.class_id = a.class_id
+    JOIN imc_level c on c.level_id = a.level_id
+GROUP BY
+    level_name,
+    class_name
+HAVING COUNT(*) > 3;
+
+-- COUNT
+
+SELECT COUNT(*),COUNT(DISTINCT user_id) FROM imc_course;
+
+-- SUM
+
+SELECT
+    b.level_name,
+    SUM(study_cnt)
+FROM imc_course a
+    JOIN imc_level b ON b.level_id = a.level_id
+GROUP BY level_name;
+
+-- AVG
+
+SELECT sum(study_cnt)/COUNT(study_cnt) FROM imc_course;
+
+SELECT AVG(study_cnt) FROM imc_course;
+
+-- 综合运用
+
+SELECT
+    course_id,
+    AVG(content_score),
+    AVG(level_score),
+    AVG(logic_score),
+    AVG(score)
+FROM imc_classvalue
+GROUP BY course_id;
+
+-- MAX
+
+SELECT title, study_cnt
+from imc_course
+WHERE study_cnt = (
+        SELECT MIN(study_cnt)
+        FROM imc_course
+    );
+
+-- ORDER BY
+
+SELECT title, study_cnt from imc_course ORDER BY study_cnt DESC;
+
+-- LIMIT
+
+SELECT course_id, title
+FROM imc_course
+ORDER BY course_id
+LIMIT 10, 10;
+
+-- VIEW
+
+CREATE VIEW vm_course AS 
+	SELECT
+	    a.course_id,
+	    a.title,
+	    b.class_name,
+	    c.type_name,
+	    d.level_name
+	FROM imc_course a
+	    JOIN imc_class b ON b.class_id = a.class_id
+	    JOIN imc_type c ON c.type_id = a.type_id
+	    JOIN imc_level d ON d.level_id = a.level_id;
+
+SELECT * from vm_course;
