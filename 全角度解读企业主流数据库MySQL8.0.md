@@ -2132,7 +2132,10 @@ SET
     a.content_score = b.avg_content,
     a.level_score = b.avg_level,
     a.logic_score = b.avg_logic,
-    a.score = b.avg_score;
+    -- a.score = b.avg_score;
+    a.score = (
+        content_score + level_score + logic_score
+    ) / 3;
 
 SHOW WARNINGS;
 
@@ -2572,16 +2575,15 @@ FROM imc_course;
 
 
 
-
-
 #### MySQL 中的其它常用函数
 
-| 函数名                                                       | 说明                                                |
-| ------------------------------------------------------------ | --------------------------------------------------- |
-| `ROUND(X,D)`                                                 | 对数值进行四舍五入保留D位小数                       |
-| `RAND()`                                                     | 返回一个在0和1之间的随机数                          |
-| `CASE WHEN [condition]` <br />`THEN result` <br />`[WHEN[condition] THEN result...[ELSE result]END` | 用于实现其它语言中的case.when功能，提供数据流控制。 |
-| `MD5(str)`                                                   | 返回str的MD5值                                      |
+| 函数名                                                       | 说明                                                         |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `ROUND(X,D)`                                                 | 对数值进行四舍五入保留D位小数                                |
+| `RAND()`                                                     | 返回一个在0和1之间的随机数                                   |
+| `CASE WHEN [condition]` <br />`THEN result` <br />`[WHEN[condition] THEN result...[ELSE result]END` | 用于实现其它语言中的`case.when`功能，提供数据流控制。        |
+| `MD5(str)`                                                   | 返回`str`的`MD5`值                                           |
+| `CAST(value AS datatype)`                                    | `CAST()` 函数将（任何类型的）值转换为指定的数据类型。`DATE DATETIME DECIMAL TIME CHAR NCHAR SIGNED UNSIGNED BINARY` |
 
 
 
@@ -2617,31 +2619,278 @@ WHERE
 
 ### MySQL8.0 新增的公共表表达式
 
+https://dev.mysql.com/doc/refman/8.0/en/with.html
+
+```mysql
+WITH [RECURSIVE]
+    cte_name [(col_name [, col_name] ...)] AS (subquery)
+    [, cte_name [(col_name [, col_name] ...)] AS (subquery)] ...
+    
+WITH
+  cte1 AS (SELECT a, b FROM table1),
+  cte2 AS (SELECT c, d FROM table2)
+SELECT b, d FROM cte1 JOIN cte2
+WHERE cte1.a = cte2.c;
+```
+
+
+
 实战：
 
+```mysql
+-- 可多次调用
+WITH cte AS (
+        SELECT
+            title,
+            study_cnt,
+            class_id
+        FROM imc_course
+        WHERE study_cnt > 2000
+    )
+SELECT *
+FROM cte
+UNION ALL
+SELECT *
+FROM cte
+ORDER BY 1 DESC;
 ```
 
+
+
+实战：CTE递归生成序列
+
+```mysql
+WITH RECURSIVE test AS (
+        SELECT 1 AS n
+        UNION ALL
+        SELECT 1 + n
+        FROM test
+        WHERE n < 10
+    )
+SELECT *
+FROM test;
 ```
 
 
 
-#### 6-39 公共表表达式
+实战：递归查询课程评论信息
+
+```mysql
+WITH
+    RECURSIVE replay(
+        quest_id,
+        quest_title,
+        user_id,                      
+        replyid,
+        q_path
+    ) AS(
+        SELECT
+            quest_id,
+            quest_title,
+            user_id,
+            replyid,
+            CAST(quest_id AS CHAR(200)) AS q_path
+        FROM imc_question
+        WHERE
+            course_id = 59
+            AND replyid = 0
+        UNION ALL
+        SELECT
+            a.quest_id,
+            a.quest_title,
+            a.user_id,
+            a.replyid,
+            CONCAT(b.q_path, '>>', a.quest_id) AS q_path
+        FROM imc_question a
+            JOIN replay b ON a.replyid = b.quest_id
+    )
+SELECT *
+FROM replay;
+```
+
+
 
 ### 6-41 MySQL8.0 新增的窗口函数
 
-实战：
-
+```mysql
+function_name([exp])
+OVER(
+  [ PARTITION BY exp [, ...]]
+  [ ORDER BY exp [ASC|DESC][, ...]
+)
 ```
 
+| 函数名         | 说明                                                         |
+| -------------- | ------------------------------------------------------------ |
+| 聚合函数       | 聚合函数都可以做为窗口函数使用                               |
+| `ROW_NUMBER()` | 返回窗口分区内数据的行号                                     |
+| `RANK()`       | 类似于`row_number`，只是对于相同数据会产生重复的行号，之后的数据行号会产生**间隔** |
+| `DENSE_RANK()` | 类似于`rank`区别在于当组内某行数据重复时，虽然行号会重复，但后续的行号**不会产生间隔**。 |
+
+
+
+实战：`row_number`，`rank`，`dense_rank` 之间的区别
+
+```mysql
+WITH
+    test(study_name, class_name, score) AS(
+        SELECT
+            'sqlercn',
+            'MySQL',
+            95
+        UNION ALL
+        SELECT
+            'tom',
+            'MySQL',
+            99
+        UNION ALL
+        SELECT
+            'Jerry',
+            'MySQL',
+            99
+        UNION ALL
+        SELECT
+            'Gavin ',
+            'MySQL',
+            98
+        UNION ALL
+        SELECT
+            'sqlercn',
+            'PostGreSQL',
+            99
+        UNION ALL
+        SELECT
+            'tom',
+            'PostGreSOL',
+            99
+        UNION ALL
+        SELECT
+            'Jerry',
+            'PostGreSQL',
+            98
+    )
+SELECT
+    study_name,
+    class_name,
+    score,
+    ROW_NUMBER() OVER(
+        PARTITION BY class_name
+        ORDER BY
+            score DESC
+    ) AS rw,
+    RANK() OVER(
+        PARTITION BY class_name
+        ORDER BY
+            score DESC
+    ) AS rk,
+    DENSE_RANK() OVER(
+        PARTITION BY class_name
+        ORDER BY
+            score DESC
+    ) AS drk
+FROM test
+ORDER BY class_name, rw;
 ```
 
 
 
-#### 6-42 窗口函数
+实战：按学习人数对课程进行排名，并列出每类课程学习人数排名前3的课程名称，学习人数以及名次。
+
+```mysql
+WITH tmp AS(
+        SELECT
+            class_name,
+            title,
+            score,
+            RANK() OVER(
+                PARTITION BY class_name
+                ORDER BY
+                    score DESC
+            ) AS cnt
+        FROM imc_course a
+            JOIN imc_class b ON b.class_id = a.class_id
+    )
+SELECT *
+FROM tmp
+WHERE cnt <= 3;
+```
+
+
+
+实战：每门课程的学习人数占本类课程总学习人数的百分比
+
+```mysql
+WITH tmp AS (
+        SELECT
+            class_name,
+            title,
+            study_cnt,
+            SUM(study_cnt) OVER(PARTITION BY class_name) AS class_total
+        FROM imc_course a
+            JOIN imc_class b ON b.class_id = a.class_id
+    )
+SELECT
+    class_name,
+    title,
+    CONCAT(
+        study_cnt / class_total * 100,
+        '%'
+    )
+FROM tmp;
+```
+
+
 
 ### 6-45 SQL 开发中易犯的错误
 
-### 6-47 章节总结
+- 使用`COUNT(*)`判断是否存在符合条件的数据
+  - 使用`SELECT...LIMIT 1`
+- 在执行一个更新语句后，使用查询方式判断此更新语句是否有执行成功。
+  - 使用`ROW_COUNT()`函数判断修改行数
+- 试图在`ON`条件中过滤不满足条件的记录
+  - 使用 `WHERE` 进行条件过滤
+- 在使用`In`进行子查询的判断时，在列中未指定正确的表名
+  - 如`Select A1 from A where A1 in(select A1from B)`
+    - 这时尽管B中并不存在`A1`列数据库也不会报错，而是会列出A表中的所有数据
+  - 使用 `JOIN` 关联，替代子查询
+- 对于表中定义的具有`not null`和`default`值的列，在插入数据时直接插入`NULL`值。
+
+
+
+实战：查询出分类ID为5的课程名称和分类名称
+
+```mysql
+SELECT
+    a.title,
+    b.class_name,
+    b.class_id
+FROM imc_course a
+    JOIN imc_class b ON a.class_id = b.class_id AND b.class_id = 5;
+
+-- ON 过滤失效
+
+SELECT
+    a.title,
+    b.class_name,
+    b.class_id
+FROM imc_course a
+    LEFT JOIN imc_class b ON a.class_id = b.class_id AND b.class_id = 5;
+```
+
+
+
+实战：查询列不指定表名, 造成 WHERE 失效
+
+```mysql
+SELECT *
+FROM imc_course
+WHERE title IN (
+        SELECT title
+        FROM imc_class
+    );
+```
+
+
 
 ## 第 7 章 揭开 SQL 优化神秘面纱
 

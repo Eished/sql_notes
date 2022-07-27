@@ -154,7 +154,24 @@ WHERE b.course_id IS NULL;
 
 SHOW VARIABLES LIKE 'sql_mode';
 
-SET SESSION sql_mode='ONLY_FULL_GROUP_BY';
+SET
+    SESSION sql_mode = 'ONLY_FULL_GROUP_BY,
+STRICT_TRANS_TABLES,
+NO_ZERO_IN_DATE,
+NO_ZERO_DATE,
+ERROR_FOR_DIVISION_BY_ZERO,
+NO_ENGINE_SUBSTITUTION';
+
+-- 移除
+
+SET SESSION sql_mode = (
+        SELECT
+        REPLACE (
+                @ @sql_mode,
+                'ONLY_FULL_GROUP_BY,',
+                ''
+            )
+    );
 
 SELECT
     level_name,
@@ -218,11 +235,15 @@ SET
     a.content_score = b.avg_content,
     a.level_score = b.avg_level,
     a.logic_score = b.avg_logic,
-    a.score = b.avg_score;
+    a.score = (
+        content_score + level_score + logic_score
+    ) / 3;
 
 SHOW WARNINGS;
 
 SELECT * FROM imc_course;
+
+SELECT * FROM imc_classvalue;
 
 -- MAX
 
@@ -463,3 +484,192 @@ WHERE
         WHEN sex = 0 THEN '女'
         ELSE '未知'
     END = '男';
+
+-- CTE
+
+WITH cte AS (
+        SELECT
+            title,
+            study_cnt,
+            class_id
+        FROM imc_course
+        WHERE study_cnt > 2000
+    )
+SELECT *
+FROM cte
+UNION ALL
+SELECT *
+FROM cte
+ORDER BY 1 DESC;
+
+-- WITH RECURSIVE
+
+WITH RECURSIVE test AS (
+        SELECT 1 AS n
+        UNION ALL
+        SELECT 1 + n
+        FROM test
+        WHERE n < 10
+    )
+SELECT *
+FROM test;
+
+-- WITH RECURSIVE QUERY
+
+WITH
+    RECURSIVE replay(
+        quest_id,
+        quest_title,
+        user_id,
+        replyid,
+        q_path
+    ) AS(
+        SELECT
+            quest_id,
+            quest_title,
+            user_id,
+            replyid,
+            CAST(quest_id AS CHAR(200)) AS q_path
+        FROM imc_question
+        WHERE
+            course_id = 59
+            AND replyid = 0
+        UNION ALL
+        SELECT
+            a.quest_id,
+            a.quest_title,
+            a.user_id,
+            a.replyid,
+            CONCAT(b.q_path, '>>', a.quest_id) AS q_path
+        FROM imc_question a
+            JOIN replay b ON a.replyid = b.quest_id
+    )
+SELECT *
+FROM replay;
+
+-- 窗口函数
+
+WITH
+    test(study_name, class_name, score) AS(
+        SELECT
+            'sqlercn',
+            'MySQL',
+            95
+        UNION ALL
+        SELECT
+            'tom',
+            'MySQL',
+            99
+        UNION ALL
+        SELECT
+            'Jerry',
+            'MySQL',
+            99
+        UNION ALL
+        SELECT
+            'Gavin ',
+            'MySQL',
+            98
+        UNION ALL
+        SELECT
+            'sqlercn',
+            'PostGreSQL',
+            99
+        UNION ALL
+        SELECT
+            'tom',
+            'PostGreSOL',
+            99
+        UNION ALL
+        SELECT
+            'Jerry',
+            'PostGreSQL',
+            98
+    )
+SELECT
+    study_name,
+    class_name,
+    score,
+    ROW_NUMBER() OVER(
+        PARTITION BY class_name
+        ORDER BY
+            score DESC
+    ) AS rw,
+    RANK() OVER(
+        PARTITION BY class_name
+        ORDER BY
+            score DESC
+    ) AS rk,
+    DENSE_RANK() OVER(
+        PARTITION BY class_name
+        ORDER BY
+            score DESC
+    ) AS drk
+FROM test
+ORDER BY class_name, rw;
+
+-- 按学习人数对课程进行排名，并列出每类课程学习人数排名前3的课程名称，学习人数以及名次。
+
+WITH tmp AS(
+        SELECT
+            class_name,
+            title,
+            score,
+            RANK() OVER(
+                PARTITION BY class_name
+                ORDER BY
+                    score DESC
+            ) AS cnt
+        FROM imc_course a
+            JOIN imc_class b ON b.class_id = a.class_id
+    )
+SELECT *
+FROM tmp
+WHERE cnt <= 3;
+
+-- 每门课程的学习人数占本类课程总学习人数的百分比
+
+WITH tmp AS (
+        SELECT
+            class_name,
+            title,
+            study_cnt,
+            SUM(study_cnt) OVER(PARTITION BY class_name) AS class_total
+        FROM imc_course a
+            JOIN imc_class b ON b.class_id = a.class_id
+    )
+SELECT
+    class_name,
+    title,
+    CONCAT(
+        study_cnt / class_total * 100,
+        '%'
+    )
+FROM tmp;
+
+-- 查询出分类ID为5的课程名称和分类名称
+
+SELECT
+    a.title,
+    b.class_name,
+    b.class_id
+FROM imc_course a
+    JOIN imc_class b ON a.class_id = b.class_id AND b.class_id = 5;
+
+-- ON 过滤失效
+
+SELECT
+    a.title,
+    b.class_name,
+    b.class_id
+FROM imc_course a
+    LEFT JOIN imc_class b ON a.class_id = b.class_id AND b.class_id = 5;
+
+-- 查询列不指定表名, 造成 WHERE 失效
+
+SELECT *
+FROM imc_course
+WHERE title IN (
+        SELECT title
+        FROM imc_class
+    );
