@@ -673,3 +673,59 @@ WHERE title IN (
         SELECT title
         FROM imc_class
     );
+
+-- 查看 慢查询日志 目录
+
+show variables like '%query%';
+
+set global long_query_time = 0;
+
+show global variables like 'long_query_time';
+
+-- EXPLAIN
+
+EXPLAIN
+SELECT
+    level_name,
+    class_name,
+    study_cnt,
+    level_score,
+    course_id
+FROM imc_course a
+    JOIN imc_class b ON b.class_id = a.class_id
+    JOIN imc_level c on c.level_id = a.level_id
+WHERE
+    study_cnt > 3000
+    AND a.course_id = (
+        SELECT b.course_id
+        FROM imc_chapter b
+        LIMIT 1
+    );
+
+EXPLAIN
+SELECT a.course_id, a.title
+FROM imc_course a
+WHERE a.course_id = (
+        SELECT b.course_id
+        FROM imc_chapter b
+        LIMIT 1
+    );
+
+EXPLAIN
+SELECT a.title
+FROM imc_course a
+UNION
+SELECT b.chapter_name
+FROM imc_chapter b;
+
+EXPLAIN
+SELECT
+    level_name,
+    class_name,
+    study_cnt,
+    level_score,
+    course_id
+FROM imc_course a
+    JOIN imc_class b ON b.class_id = a.class_id
+    JOIN imc_level c on c.level_id = a.level_id
+WHERE study_cnt > 3000;

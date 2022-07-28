@@ -2203,6 +2203,14 @@ LIMIT 10, 10;
 
 ### 6-24 Create View 语句创建视图
 
+在 SQL 中，视图是基于 SQL 语句的结果集的可视化的表。
+
+视图包含行和列，就像一个真实的表。视图中的字段就是来自一个或多个数据库中的真实的表中的字段。我们可以向视图添加 SQL 函数、WHERE 以及 JOIN 语句，我们也可以提交数据，就像这些来自于某个单一的表。
+
+**注释：**数据库的设计和结构不会受到视图中的函数、where 或 join 语句的影响。
+
+**注释：**视图总是显示最近的数据。每当用户查询视图时，数据库引擎通过使用 SQL 语句来重建数据。
+
 ```mysql
 CREATE
     [OR REPLACE]
@@ -2214,7 +2222,7 @@ CREATE
     [WITH [CASCADED | LOCAL] CHECK OPTION]
 ```
 
-实战：是文一个包括课程D，课程名称，课程分类，课程方向以及课程难度的视图
+实战：一个包括课程D，课程名称，课程分类，课程方向以及课程难度的视图
 
 ```mysql
 CREATE VIEW vm_course AS 
@@ -2900,41 +2908,254 @@ WHERE title IN (
 
 ### 7-1 SQL 优化的步骤
 
+1. 发现问题
+2. 分析执行计划
+3. 优化索引
+4. 改写SQL
+5. 数据库垂直切分
+6. 数据库水平切分
+
 ### 7-2 发现有性能问题的 SQL
+
+- 用户主动上报应用性能问题
+- 分析慢查询日志发现存在问题的SQL
+- 数据库时实监控长时间运行的SQL
 
 ### 7-3 配置慢查询日志
 
-### 7-4 慢查询日志分析利器
+- 语法
+  - `set global slow_query_log [ON|OFF]`
+  - `set global slow_query_log=1;` 只对当前数据库生效，如果MySQL重启后则会失效。
+  - 修改`my.cnf`文件，增加或修改参数`slow_query_log` 和`slow_query_log_file`后，然后重启MySQL服务器
+- 自定义目录
+  - `set global slow_query_log_file =/sql_log/slowlog.log`
+- 查看 慢查询日志 目录和相关信息
+  - `show variables like '%query%';`
+  - 显示慢查询配置
+  - `show variables  like '%slow_query_log%';`
+- 设置慢查询阈值
+  - `set global long_query_time xx.xxx`
+- 记录所有没有索引的SQL
+  - `set global log_queries_not_using_indexes=[ON|OFF]`
 
-### 7-5 安装 percona 工具集
+#### 慢查询日志分析利器
 
-### 7-6 启用慢查询日志
+- `mysqldumpslow [OPTS...][LOGS...] `
+  - `mysqldumpslow --help`
+- `pt-query-digest [OPTIONS][FILES][DSN]`
+  - 信息更多，打印执行计划，抽象重复SQL
 
-### 7-7 分析慢查询日志
+#### 安装 percona 工具集
+
+https://www.percona.com/downloads/Percona-Server-LATEST/
+
+- `2.5GB...`
+
+#### 启用慢查询日志
+
+- `set global long_query_time=0;`
+  - 重新连接或 `show global variables like 'long_query_time';`
+- `set global slow_query_log=1;`
+- `/var/lib/mysql/xxx-slow.log`
+
+#### 分析慢查询日志
+
+- 用户名 地址 线程ID
+- 查询时间 锁时间 返回行数 扫描行数
+- `mysqldumpslow slowlog.log`
+  - `sudo mysqldumpslow /var/lib/mysql/xxx-slow.log`
+- `pt-query-digest slowlog.log`
 
 ### 7-8 实时获取需要优化的 SQL
 
-### 7-9 什么是 SQL 的执行计划？
+监控长时间运行的SQL
 
-### 7-10 获取 SQL 的执行计划
+```mysql
+SELECT id,user,host,DB,command,time,state,info FROM information_schema.PROCESSLIST WHERE TIME>=60;
+```
 
-### 7-11 分析 SQL 的执行计划-[id 列]
 
-### 7-12 分析 SQL 的执行计划-[select_type 列]
 
-### 7-13 分析 SQL 的执行计划-[select-type 列]续
+### 7-9 SQL 执行计划
 
-### 7-14 分析 SQL 的执行计划-[table 列]
+我们为什么要关注执行计划？
 
-### 7-15 分析 SQL 的执行计划-[type 列]
+- 了解SQL如何访问表中的数据
+- 了解SQL如何使用表中的索引
+- 了解SQL所使用的查询类型
 
-### 7-16 分析 SQL 的执行计划-[type 列]续
+#### 获取 SQL 的执行计划
 
-### 7-17 分析 SQL 的执行计划-[keys 相关列]
+https://dev.mysql.com/doc/refman/8.0/en/explain.html
 
-### 7-18 分析 SQL 的执行计划-[rows 列]
+```mysql
+{EXPLAIN | DESCRIBE | DESC}
+    [explain_type]
+    {explainable_stmt | FOR CONNECTION connection_id}
 
-### 7-19 分析 SQL 的执行计划-[extra 列]
+explain_type: {
+    FORMAT = format_name
+}
+
+explainable_stmt: {
+    SELECT statement
+  | TABLE statement
+  | DELETE statement
+  | INSERT statement
+  | REPLACE statement
+  | UPDATE statement
+}
+```
+
+
+
+#### 分析 SQL 的执行计划
+
+```
+id: 1
+select_type: SIMPLE 
+table: imc_course 
+partitions: NULL 
+type: ALL 
+possible_keys: NULL 
+key: NULL 
+key_len: NULL 
+ref: NULL
+rows: 100
+filtered: 33.33
+Extra: Using where
+```
+
+
+
+#### id 列
+
+- ID 表示查询执行的顺序
+- ID 相同时由上到下执行
+- ID 不同时，由大到小执行
+
+
+
+#### select_type 列
+
+执行计划内容分析
+
+| select_type  值      | 含义                                                         |
+| -------------------- | ------------------------------------------------------------ |
+| `SIMPLE`             | 不包含子查询或是UNION操作的查询                              |
+| `PRIMARY`            | 查询中如果包含任何子查询，那么最外层的查询则被标记为`PRIMARY` |
+| `SUBQUERY`           | `SELECT`列表中的子查询                                       |
+| `DEPENDENT SUBQUERY` | 依赖外部结果的子查询                                         |
+| `UNION`              | `union`操作的第二个或是之后的查询的值为`union`               |
+| `DEPENDENT UNION`    | 当`UNION`做为子查询时，第二或是第二个后的查询的`select type`值 |
+| `UNION RESULT`       | `UNION`产生的结果集                                          |
+| `DERIVED`            | 出现在`FROM`子句中的子查询                                   |
+
+```mysql
+EXPLAIN
+SELECT
+    level_name,
+    class_name,
+    COUNT(*)
+FROM imc_course a
+    JOIN imc_class b ON b.class_id = a.class_id
+    JOIN imc_level c on c.level_id = a.level_id
+WHERE study_cnt > 3000;
+
+EXPLAIN
+SELECT a.course_id, a.title
+FROM imc_course a
+WHERE a.course_id = (
+        SELECT b.course_id
+        FROM imc_chapter b
+        LIMIT 1
+    );
+```
+
+
+
+#### table 列
+
+- 指明是从那个表中获取数据
+  - `<unionM，N>` 由ID为`M，N` 查询 `union` 产生的结果集
+  - `<derived N>/<subquery N>` ID为 `N` 的查询产生的结果
+
+```mysql
+EXPLAIN
+SELECT a.title
+FROM imc_course a
+UNION
+SELECT b.chapter_name
+FROM imc_chapter b;
+```
+
+
+
+#### partitions 列
+
+- 对于分区表，显示查询的分区ID
+- 对于非分区表，显示NULL
+
+
+
+#### type 列
+
+按性能从高到低排列
+
+| 性能 | 值            | 含义                                                         |
+| ---- | ------------- | ------------------------------------------------------------ |
+| 高   | `system`      | 这是`const`联接类型的一个特例，当查询的表只有一行时使用      |
+|      | `const`       | 表中有且只有一个匹配的行时使用，如对主键或是唯一索引的查询，这是效率最高的联接方式 |
+|      | `eq_ref`      | 唯一索或主键引查找，对于每个索引键，表中只有一条记录与之匹配。 |
+|      | `ref`         | 非唯一索引查找，返回匹配某个单独值的所有行。                 |
+|      | `ref_or_null` | 类似于`ref`类型的查询，但是附加了对`NULL`值列的查询          |
+|      | `index_merge` | 该联接类型表示使用了索引合并优化方法。                       |
+|      | `range`       | 索引范围扫描，常见于`between、>、<`这样的查询条件            |
+|      | `index`       | `FULL index Scan` 全索引扫描，同`ALL`的区别是，遍历的是索引树 |
+| 低   | `ALL`         | `FULL TALBLE Scan` 全表扫描，这是效率最差的联接方式          |
+
+
+
+#### keys 相关列
+
+- `possible_key`
+  - 指出查询中可能会用到的索引
+- `key`
+  - 指出查询时实际用到的索引
+- `key_len`
+  - 实际使用索引的最大长度
+- `ref`
+  - 指出那些列或常量被用于索引查找
+
+
+
+#### rows 列
+
+- 指出那些列或常量被用于索引查找
+- 跟据统计信息预估的扫描的行数
+
+越小越好
+
+
+
+#### extra 列
+
+- 指出那些列或常量被用于索引查找
+- 跟据统计信息预估的扫描的行数
+
+越高越好
+
+| 值                            | 含义                                                         |
+| ----------------------------- | ------------------------------------------------------------ |
+| `Distinct`                    | 优化`distinct`操作，在找到第一匹配的元组后即停止找同样值的动作 |
+| `Not exists`                  | 使用`not exists`来优化查询                                   |
+| `Using filesort`              | 使用文件来进行排序，通常会出现在`order by`或`group by`查询中 |
+| `Using index`                 | 使用了覆盖索引进行查询                                       |
+| `Using temporary`             | MySQL需要使用临时表来处理查询，常见于排序，子查询和分组查询  |
+| `Using where `                | 需要在MySQL服务器层使用WHERE条件来过滤数据                   |
+| `selec tables optimized away` | 直接通过索引来获得数据，不用访问表                           |
+
+
 
 ## 第 8 章 SQL 的索引优化之向面试开炮&吊打面试官
 
