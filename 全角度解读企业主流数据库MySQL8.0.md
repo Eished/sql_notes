@@ -3104,14 +3104,14 @@ FROM imc_chapter b;
 
 | 性能 | 值            | 含义                                                         |
 | ---- | ------------- | ------------------------------------------------------------ |
-| 高   | `system`      | 这是`const`联接类型的一个特例，当查询的表只有一行时使用      |
-|      | `const`       | 表中有且只有一个匹配的行时使用，如对主键或是唯一索引的查询，这是效率最高的联接方式 |
-|      | `eq_ref`      | 唯一索或主键引查找，对于每个索引键，表中只有一条记录与之匹配。 |
-|      | `ref`         | 非唯一索引查找，返回匹配某个单独值的所有行。                 |
+| 高   | `system`      | 表只有一行记录（等于系统表），这是`const`类型的特列，平时不大会出现，可以忽略。 |
+|      | `const`       | 表中有且只有一个匹配的行时使用，如对主键或是唯一索引的查询，这是效率最高的联接方式。 表示通过索引一次就找到了，`const`用于比较`primary key`或`uique`索引，因为只匹配一行数据，所以很快，如主键置于`where`列表中，MySQL就能将该查询转换为一个常量。 |
+|      | `eq_ref`      | 唯一索或主键引查找，对于每个索引键，表中只有一条记录与之匹配。用于联表查询的情况，按联表的主键或唯一键联合查询。 |
+|      | `ref`         | 可以用于单表扫描或者连接。如果是连接的话，驱动表的一条记录能够在被驱动表中通过非唯一（主键）属性所在索引中匹配多行数据，或者是在单表查询的时候通过非唯一（主键）属性所在索引中查到一行数据。 |
 |      | `ref_or_null` | 类似于`ref`类型的查询，但是附加了对`NULL`值列的查询          |
-|      | `index_merge` | 该联接类型表示使用了索引合并优化方法。                       |
-|      | `range`       | 索引范围扫描，常见于`between、>、<`这样的查询条件            |
-|      | `index`       | `FULL index Scan` 全索引扫描，同`ALL`的区别是，遍历的是索引树 |
+|      | `index_merge` | 表示查询使用了两个以上的索引，最后取交集或者并集，常见`and `，`or`的条件使用了不同的索引，官方排序这个在`ref_or_null`之后，但是实际上由于要读取多个索引，性能可能大部分时间都不如`range`。 |
+|      | `range`       | 索引范围查询，常见于使用 `=, <>, >, >=, <, <=, IS NULL, <=>, BETWEEN, IN()`或者`like`等运算符的查询中。 |
+|      | `index`       | 只遍历索引树，通常比`All`快。因为，索引文件通常比数据文件小，也就是虽然`all`和`index`都是读全表，但`index`是从索引中读取的，而`all`是从硬盘读的。 |
 | 低   | `ALL`         | `FULL TALBLE Scan` 全表扫描，这是效率最差的联接方式          |
 
 
@@ -3132,6 +3132,7 @@ FROM imc_chapter b;
 #### rows 列
 
 - 指出那些列或常量被用于索引查找
+  - 在循环中代表嵌套循环的次数
 - 跟据统计信息预估的扫描的行数
 
 越小越好
@@ -3163,23 +3164,226 @@ FROM imc_chapter b;
 
 ### 8-1 SQL 优化的常用手段
 
-### 8-2 在 MySQL 中索引的作用
+- 优化SQL查询所涉及到的表中的索引
+- 改写SQL以达到更好的利用索引的目的
 
-### 8-3 Btree+索引的特点
+### 索引（重要）
 
-### 8-4 如何选择在什么列上建立索引
+- 告诉存储引擎如何快速的查找到所需要的数据
+  - 类似于操作系统段页表、快表。
 
-### 8-5 针对 SQL 语句的索引优化
+Innodb支持的索引类型
 
-### 8-6 如何选择索引键的顺序
+- Btree索引
+  - 默认
+- 自适应HASH索引
+  - 系统自动
+- 全文索引
+  - 字符串，中文支持不太好
+- 空间索引
+  - 未涉及
 
-### 8-7 锁引使用的误区
+#### Btree+ 索引
+
+- 以`B+`树的结构存储索引数据
+  - InnoDB 叶子索引指向主键
+  - ![image-20220729021318944](全角度解读企业主流数据库MySQL8.0.assets/image-20220729021318944.png)
+- Btree索引适用于全值匹配的查询
+  - `class_name='mysql'`
+  - `class_name in ('mysql','PostgreSQL')`
+- Btree索引适合处理范围查找
+  - `study_cnt between 1000 and 3000`
+  - `study_cnt > 3000`
+- Btree索引从索引的**最左侧列**开始匹配查找列
+  - `create index idx_title_studyCnt on imc_course(title,study_cnt)` **title** 为最左侧列
+    - `study_cnt > 3000` 无法使用索引
+    - `study_cnt > 3000 and title='Mysql'`  可以使用索引，与条件顺序无关
+    - `title='Mysql'`  可以使用索引
+
+#### 应该在什么列上建立索引
+
+- `WHERE` 子句中的列
+
+- 包含在`ORDER BY、GROUP BY、DISTINCT`中的字段
+
+  提高排序性能，避免临时表
+
+  - 索引列的顺序必须和 `GROUP BY` 列的顺序一致
+  - 索引列的方向（升序、降序）要和 `ORDER BY` 一致
+  - 多表关联查询时，`order by` 的字段全部在第一张表中
+
+- 多表`JOIN`的关联列
+
+
+
+实战：查询出2019年1月1号以后注册的男性会员的呢称
+
+```mysql
+
+EXPLAIN
+SELECT user_nick, reg_time
+FROM imc_user
+WHERE
+    sex = 1
+    AND reg_time > '2019-01-01';
+
+-- 筛选率
+
+SELECT
+    COUNT(DISTINCT sex),
+    COUNT(
+        DISTINCT DATE_FORMAT(reg_time, '%Y-%m-%d')
+    ),
+    COUNT(*),
+    COUNT(
+        DISTINCT DATE_FORMAT(reg_time, '%Y-%m-%d')
+    ) / COUNT(*),
+    COUNT(DISTINCT sex) / COUNT(*)
+FROM imc_user;
+
+-- 建立 reg_time 索引, 在筛选率低的字段建索引基本没用
+
+CREATE INDEX idx_regtime ON imc_user(reg_time);
+```
+
+
+
+
+
+#### 针对 SQL 语句的索引优化
+
+- 减少循环次数
+- 尽可能的覆盖索引
+
+
+
+实战：查看高级别 mysql 课程信息
+
+```mysql
+-- 查看高级别 mysql 课程信息
+
+EXPLAIN
+SELECT
+    course_id,
+    b.class_name,
+    d.type_name,
+    c.level_name,
+    title,
+    score
+FROM imc_course a
+    JOIN imc_class b ON b.class_id = a.class_id
+    JOIN imc_level c ON c.level_id = a.level_id
+    JOIN imc_type d oN d.type_id = a.type_id
+WHERE
+    c.level_name = '高级'
+    AND b.class_name = 'MySQL';
+
+-- 建立 a 表索引
+
+SHOW CREATE TABLE imc_course;
+
+CREATE UNIQUE INDEX uqx_classname ON imc_class(class_name);
+
+CREATE UNIQUE INDEX uqx_levelname ON imc_level(level_name);
+
+CREATE INDEX
+    idx_classid_typeid_levelid ON imc_course(class_id, type_id, level_id);
+```
+
+
+
+#### 如何选择索引键的顺序
+
+- 区分度最高的列放在联合索引的最左侧
+- 使用最频繁的列放到联合索引的最左侧
+- 尽量把字段长度小的列放在联合索引列的最左侧
+
+
+
+一些限制：
+
+- 索引覆盖了表大部分数据，不需要索引优化时，不会使用索引
+- **Btree 索引的限制**
+  - 只能从最左侧开始按索引键的顺序使用索引，不能跳过索引键
+  - `NOT IN`和`<>`操作无法使用索引
+  - 索引列上不能使用表达式或是函数
+
+
+
+#### 索引使用的误区
+
+- **错误**：
+  - 索引越多越好
+  - 使用`IN`列表查询不能用到索
+  - 查询过滤顺序必需同索引键顺序相同才可以使用到索引
 
 ### 8-8 SQL 优化的第二选择 SQL 改写
 
-### 8-9 SQL 改写优化
+- 使用`outer join`代替`not in`
+- 使用 `CTE` 代替子查询
+- 拆分复杂的大SQL为多个简单的小SQL
+- 巧用计算列优化查询
+  - 计算列替换表达式或是函数
 
-### 8-10 本章小结
+
+
+实战：查询出不存在课程的分类名称。（代替`not in`）
+
+```mysql
+-- 需求：查询出不存在课程的分类名称。
+
+INSERT INTO imc_class SET class_name='AI';
+
+EXPLAIN
+SELECT class_name
+FROM imc_class
+WHERE class_id NOT IN(
+        SELECT class_id
+        FROM imc_course
+    );
+
+-- 效果一样，MySQL 8.0 自动优化 NOT IN 为 LEFT JOIN
+
+EXPLAIN
+SELECT class_name
+FROM imc_class a
+    LEFT JOIN imc_course b ON a.class_id = b.class_id
+WHERE b.class_id IS NULL;
+```
+
+
+
+实战：查询对于内容，逻辑和难度三项评分之后大于28分的用户评分。（计算列优化查询）
+
+```mysql
+EXPLAIN
+SELECT *
+FROM imc_classvalue
+WHERE (
+        content_score + level_score + logic_score
+    ) > 28;
+
+CREATE INDEX
+    idx_contentScore_levelScore_logicScore ON imc_classvalue(
+        content_score,
+        level_score,
+        logic_score
+    );
+
+ALTER TABLE imc_classvalue
+ADD
+    COLUMN total_score DECIMAL(3, 1) AS (
+        content_score + level_score + logic_score
+    );
+
+SHOW CREATE TABLE imc_classvalue;
+
+CREATE INDEX idx_totalScore ON imc_classvalue(total_score);
+
+EXPLAIN SELECT * FROM imc_classvalue WHERE total_score > 28;
+```
+
+
 
 ## 第 9 章 搞定数据库并发高压，服务器永不宕机
 
@@ -3192,41 +3396,43 @@ FROM imc_chapter b;
 3. 【不得不知】事务隔离级别；
 4. 【解决之道】阻塞与死锁。
 
-### 9-1 -1 什么是事务
+### 9-1 什么是事务
 
-### 9-2 -2 事务的 ACID 特性
+### 9-2 事务的 ACID 特性
 
 ### 9-3 并发带来的问题【脏读】
 
 ### 9-4 并发带来的问题【不可重复读和幻读】
 
-### 9-5 INNODB 的几种事务隔离级别
+### 9-5 INNODB 的事务隔离
 
-### 9-6 如何设置 INNODB 事务隔离级别
+#### 几种事务隔离级别
 
-### 9-7 serializable 事务隔离级别
+#### 如何设置 INNODB 事务隔离级别
 
-### 9-8 repeatable read 事务隔离级别
+#### serializable 事务隔离级别
 
-### 9-9 read committed 事务隔离级别
+#### repeatable read 事务隔离级别
 
-### 9-10 read uncommitted 事务隔离级别
+#### read committed 事务隔离级别
+
+#### read uncommitted 事务隔离级别
 
 ### 9-11 事务阻塞的产生
 
-### 9-12 产生阻塞的主要原因-
+#### 9-12 产生阻塞的主要原因
 
-### 9-13 如何检测阻塞
+#### 9-13 如何检测阻塞
 
-### 9-14 事务阻塞的捕获
+#### 9-14 事务阻塞的捕获
 
-### 9-15 如何处理事务中的阻塞
+#### 9-15 如何处理事务中的阻塞
 
-### 9-16 并发事务的另一个问题-
+### 9-16 并发事务的另一个问题
 
-### 9-17 如何检测死锁
+#### 9-17 如何检测死锁
 
-### 9-18 如何处理事务的死锁
+#### 9-18 如何处理事务的死锁
 
 ### 9-19 事和和并发章节总结
 
@@ -3235,5 +3441,3 @@ FROM imc_chapter b;
 本章进行课程所有内容的梳理，总结回顾。提炼精华，再现经典。帮助同学们快速梳理，巩固升华，达到融会贯通，学以致用到工作所需中。
 
 ### 10-1 课程回顾及展望
-
-### 10-2 课程回顾及展望-续

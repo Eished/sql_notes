@@ -729,3 +729,107 @@ FROM imc_course a
     JOIN imc_class b ON b.class_id = a.class_id
     JOIN imc_level c on c.level_id = a.level_id
 WHERE study_cnt > 3000;
+
+-- 查询出2019年1月1号以后注册的男性会员的呢称
+
+EXPLAIN
+SELECT user_nick, reg_time
+FROM imc_user
+WHERE
+    sex = 1
+    AND reg_time > '2019-01-01';
+
+-- 筛选率
+
+SELECT
+    COUNT(DISTINCT sex),
+    COUNT(
+        DISTINCT DATE_FORMAT(reg_time, '%Y-%m-%d')
+    ),
+    COUNT(*),
+    COUNT(
+        DISTINCT DATE_FORMAT(reg_time, '%Y-%m-%d')
+    ) / COUNT(*),
+    COUNT(DISTINCT sex) / COUNT(*)
+FROM imc_user;
+
+-- 建立 reg_time 索引, 在筛选率低的字段建索引基本没用
+
+CREATE INDEX idx_regtime ON imc_user(reg_time);
+
+-- 查看高级别 mysql 课程信息
+
+EXPLAIN
+SELECT
+    course_id,
+    b.class_name,
+    d.type_name,
+    c.level_name,
+    title,
+    score
+FROM imc_course a
+    JOIN imc_class b ON b.class_id = a.class_id
+    JOIN imc_level c ON c.level_id = a.level_id
+    JOIN imc_type d oN d.type_id = a.type_id
+WHERE
+    c.level_name = '高级'
+    AND b.class_name = 'MySQL';
+
+-- 建立 a 表索引
+
+SHOW CREATE TABLE imc_course;
+
+CREATE UNIQUE INDEX uqx_classname ON imc_class(class_name);
+
+CREATE UNIQUE INDEX uqx_levelname ON imc_level(level_name);
+
+CREATE INDEX
+    idx_classid_typeid_levelid ON imc_course(class_id, type_id, level_id);
+
+-- 需求：查询出不存在课程的分类名称。
+
+INSERT INTO imc_class SET class_name='AI';
+
+EXPLAIN
+SELECT class_name
+FROM imc_class
+WHERE class_id NOT IN(
+        SELECT class_id
+        FROM imc_course
+    );
+
+-- 效果一样，MySQL 8.0 自动优化 NOT IN 为 LEFT JOIN
+
+EXPLAIN
+SELECT class_name
+FROM imc_class a
+    LEFT JOIN imc_course b ON a.class_id = b.class_id
+WHERE b.class_id IS NULL;
+
+-- 查询对于内容，逻辑和难度三项评分之后大于28分的用户评分
+
+EXPLAIN
+SELECT *
+FROM imc_classvalue
+WHERE (
+        content_score + level_score + logic_score
+    ) > 28;
+
+CREATE INDEX
+    idx_contentScore_levelScore_logicScore ON imc_classvalue(
+        content_score,
+        level_score,
+        logic_score
+    );
+
+ALTER TABLE imc_classvalue
+ADD
+    COLUMN total_score DECIMAL(3, 1) AS (
+        content_score + level_score + logic_score
+    );
+
+SHOW CREATE TABLE imc_classvalue;
+
+CREATE INDEX idx_totalScore ON imc_classvalue(total_score);
+
+EXPLAIN SELECT * FROM imc_classvalue WHERE total_score > 28;
