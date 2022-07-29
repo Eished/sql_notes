@@ -833,3 +833,101 @@ SHOW CREATE TABLE imc_classvalue;
 CREATE INDEX idx_totalScore ON imc_classvalue(total_score);
 
 EXPLAIN SELECT * FROM imc_classvalue WHERE total_score > 28;
+
+-- 事务 Transaction SERIALIZABLE
+
+SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+
+SHOW VARIABLES LIKE '%ISOLATION%';
+
+BEGIN;
+
+SELECT course_id,title,score FROM imc_course WHERE score>9.6;
+
+ROLLBACK;
+
+-- 事务 Transaction repeatable read
+
+SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+
+SHOW VARIABLES LIKE '%ISOLATION%';
+
+-- 事务 Transaction READ COMMITTED
+
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+
+SHOW VARIABLES LIKE '%ISOLATION%';
+
+SELECT course_id,title,score FROM imc_course WHERE course_id=37;
+
+-- 事务 Transaction READ UNCOMMITTED
+
+SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+
+SHOW VARIABLES LIKE '%ISOLATION%';
+
+SELECT course_id,title,score FROM imc_course WHERE course_id=37;
+
+ROLLBACK;
+
+-- 事务阻塞 REPEATABLE READ
+
+BEGIN;
+
+UPDATE imc_course
+SET score = score + 0.1
+WHERE score > 9.6 AND score < 9.8;
+
+COMMIT;
+
+-- 事务2 另开一个连接
+
+BEGIN;
+
+UPDATE imc_course
+SET score = score - 0.1
+WHERE score > 9.6 AND score < 9.8;
+
+-- 阻塞
+
+SELECT CONNECTION_ID();
+
+SELECT
+    waiting_pid AS 'blocked pid',
+    waiting_query AS 'blocked SQL',
+    blocking_pid AS 'running pid',
+    blocking_query AS 'running SQL',
+    wait_age AS 'blocked time',
+    sql_kill_blocking_query AS 'info'
+FROM sys.innodb_lock_waits
+WHERE (
+        UNIX_TIMESTAMP() - UNIX_TIMESTAMP(wait_started)
+    ) > 3;
+
+-- 死锁
+
+SET GLOBAL innodb_print_all_deadlocks=on;
+
+SHOW VARIABLES LIKE '%deadlocks%';
+
+-- SESSION 1
+
+BEGIN;
+
+UPDATE imc_user SET score=score+10 WHERE user_id=10;
+
+UPDATE imc_course SET score=9.8 WHERE course_id=35;
+
+-- SESSION 2
+
+BEGIN;
+
+UPDATE imc_course SET score=9.8 WHERE course_id=35;
+
+UPDATE imc_user SET score=score+10 WHERE user_id=10;
+
+show variables like 'general_log_file';
+
+show variables like 'log_error';
+
+show variables like 'slow_query_log_file';

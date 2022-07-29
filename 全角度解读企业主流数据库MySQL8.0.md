@@ -2900,7 +2900,7 @@ WHERE title IN (
 
 
 
-## 第 7 章 揭开 SQL 优化神秘面纱
+## 第 7 章 揭开 SQL 优化
 
 武以快为尊。同理，快速高效工作，同样的工作时长，却创造更多企业价值，凸显个人价值，才能立于不败之地。
 
@@ -3158,11 +3158,11 @@ FROM imc_chapter b;
 
 
 
-## 第 8 章 SQL 的索引优化之向面试开炮&吊打面试官
+## 第 8 章 SQL 的索引优化
 
 本章针对面试中高频考点：索引优化进行讲解，让你面试无忧，直接向面试开炮，甚至吊打面试官。
 
-### 8-1 SQL 优化的常用手段
+### SQL 优化的常用手段
 
 - 优化SQL查询所涉及到的表中的索引
 - 改写SQL以达到更好的利用索引的目的
@@ -3317,7 +3317,7 @@ CREATE INDEX
   - 使用`IN`列表查询不能用到索
   - 查询过滤顺序必需同索引键顺序相同才可以使用到索引
 
-### 8-8 SQL 优化的第二选择 SQL 改写
+### SQL 改写
 
 - 使用`outer join`代替`not in`
 - 使用 `CTE` 代替子查询
@@ -3385,7 +3385,7 @@ EXPLAIN SELECT * FROM imc_classvalue WHERE total_score > 28;
 
 
 
-## 第 9 章 搞定数据库并发高压，服务器永不宕机
+## 第 9 章 事务与并发控制
 
 本章紧扣数据库宕机这一企业痛点问题，讲解“高并发”下数据库企业级解决方案。
 
@@ -3396,48 +3396,368 @@ EXPLAIN SELECT * FROM imc_classvalue WHERE total_score > 28;
 3. 【不得不知】事务隔离级别；
 4. 【解决之道】阻塞与死锁。
 
-### 9-1 什么是事务
+### 事务
 
-### 9-2 事务的 ACID 特性
+- 事务是数据库执行操作的最小逻辑单元
+- 事务可以由一个SQL组成也可以由多个SQL组成
+- 组成事务的SQL要么全执行成功要么全执行失败
 
-### 9-3 并发带来的问题【脏读】
+#### 事务的 ACID 特性
 
-### 9-4 并发带来的问题【不可重复读和幻读】
+| 特征                  | 说明                                                         |
+| --------------------- | ------------------------------------------------------------ |
+| Atomicity（原子性）   | 一个事务中的所有操作，要么全部完成，要么全部不完成，不会结束在中间某个环节 |
+| Consistency（一致性） | 在事务开始之前和事务结束以后，数据库的完整性没有被破坏。     |
+| Isolation（隔离性）   | 事务的隔离性要求每个读写事务的对象与其它事务的操作对象能相互分离，即该事务提交前对其它事务都不可见。 |
+| Durability（持久性）  | 事务一旦提交了，其结果就是永久性的，就算发生了宕机等事故数据库也能将数据恢复 |
 
-### 9-5 INNODB 的事务隔离
+
+
+#### 并发带来的问题【脏读、不可重复读、幻读】
+
+- 一个事务读取了另一个事务未提交的数据
+
+- 一个事务前后两次读取的同一数据不一致。
+
+
+
+### INNODB 的事务隔离
 
 #### 几种事务隔离级别
 
+默认：REPEATABLE READ
+
+| 隔离级别                     | 脏读 | 不可重复读 | 幻读 | 隔离性 | 并发性 |
+| ---------------------------- | ---- | ---------- | ---- | ------ | ------ |
+| 顺序读（SERIALIZABLE）       | N    | N          | N    | 最高   | 最低   |
+| 可重复读（REPEATABLE READ）  | N    | N          | N    | 高     | 低     |
+| 读已提交（READ COMMITTED）   | N    | Y          | Y    | 低     | 高     |
+| 读未提交（READ UNCOMMITTED） | Y    | Y          | Y    | 最低   | 最高   |
+
+
+
 #### 如何设置 INNODB 事务隔离级别
+
+```mysql
+SET [PERSIST|GLOBAL|SESSION]
+	TRANSACTION ISOLATION LEVEL
+	{
+    READ UNCOMMITTED
+    | READ COMMITED
+    | REPEATABLE READ
+    | SERIALIZABLE
+	}
+```
+
+
 
 #### serializable 事务隔离级别
 
+```mysql
+-- 事务 Transaction
+
+SET SESSION TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+
+SHOW VARIABLES LIKE '%ISOLATION%';
+
+BEGIN;
+
+SELECT course_id,title FROM imc_course WHERE score>9.6;
+
+ROLLBACK;
+
+-- 事务2
+BEGIN;
+
+UPDATE imc_course SET score=9.8 WHERE score>9.6;
+```
+
+
+
 #### repeatable read 事务隔离级别
+
+```mysql
+SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+
+SHOW VARIABLES LIKE '%ISOLATION%';
+
+
+BEGIN;
+
+SELECT course_id,title,score FROM imc_course WHERE score>9.6;
+
+ROLLBACK;
+
+-- 事务2
+
+BEGIN;
+
+UPDATE imc_course SET score=9.7 WHERE score>=9.6;
+
+COMMIT;
+```
+
+
 
 #### read committed 事务隔离级别
 
+```mysql
+-- 事务 Transaction READ COMMITTED
+
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
+
+SHOW VARIABLES LIKE '%ISOLATION%';
+
+SELECT course_id,title,score FROM imc_course WHERE course_id=37;
+
+-- 事务2
+
+BEGIN;
+
+-- UPDATE imc_course SET score=9.7 WHERE score>=9.6;
+
+UPDATE imc_course SET score=9.1 WHERE course_id=37;
+
+COMMIT;
+```
+
+
+
 #### read uncommitted 事务隔离级别
 
-### 9-11 事务阻塞的产生
+```mysql
+-- 事务 Transaction READ UNCOMMITTED
 
-#### 9-12 产生阻塞的主要原因
+SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
 
-#### 9-13 如何检测阻塞
+SHOW VARIABLES LIKE '%ISOLATION%';
 
-#### 9-14 事务阻塞的捕获
+SELECT course_id,title,score FROM imc_course WHERE course_id=37;
 
-#### 9-15 如何处理事务中的阻塞
+ROLLBACK;
 
-### 9-16 并发事务的另一个问题
+-- 事务2
 
-#### 9-17 如何检测死锁
+BEGIN;
 
-#### 9-18 如何处理事务的死锁
+-- UPDATE imc_course SET score=9.8 WHERE score>9.6;
 
-### 9-19 事和和并发章节总结
+UPDATE imc_course SET score=9.7 WHERE course_id>33;
 
-## 第 10 章 课程总结，彰显重点
+COMMIT;
+```
 
-本章进行课程所有内容的梳理，总结回顾。提炼精华，再现经典。帮助同学们快速梳理，巩固升华，达到融会贯通，学以致用到工作所需中。
 
-### 10-1 课程回顾及展望
+
+### 阻塞
+
+#### 事务阻塞的产生
+
+```mysql
+-- 事务阻塞 REPEATABLE READ
+
+BEGIN;
+
+UPDATE imc_course
+SET score = score + 0.1
+WHERE score > 9.6 AND score < 9.8;
+
+COMMIT;
+
+-- 事务2 另开一个连接
+
+BEGIN;
+
+UPDATE imc_course
+SET score = score - 0.1
+WHERE score > 9.6 AND score < 9.8;
+```
+
+
+
+#### 产生阻塞的主要原因
+
+INNODB中的锁
+
+- 查询需要对资源加共享锁（S）
+
+- 数据修改需要对资源加排它锁（ⅹ）
+
+  - |        | 排它锁 | 共享锁 |
+    | ------ | ------ | ------ |
+    | 排它锁 | 不兼容 | 不兼容 |
+    | 共享锁 | 不兼容 | 兼容   |
+
+由于不同锁之间的兼容关系，造成的一事务需要等待另一个事务释放其所占用的资源的现象
+
+#### 检测阻塞
+
+发现阻塞：
+
+```mysql
+SELECT CONNECTION_ID();
+
+SELECT
+    waiting_pid AS 'blocked pid',
+    waiting_query AS 'blocked SQL',
+    blocking_pid AS 'running pid',
+    blocking_query AS 'running SQL',
+    wait_age AS 'blocked time',
+    sql_kill_blocking_query AS 'info'
+FROM sys.innodb_lock_waits
+WHERE (
+        UNIX_TIMESTAMP() - UNIX_TIMESTAMP(wait_started)
+    ) > 3;
+```
+
+
+
+#### 处理事务中的阻塞
+
+- 终止占用资源的事务
+- 优化占用资源事务的SQL，使其尽快释放资源
+
+
+
+### 死锁
+
+- 并行执行的多个事务相互之间占有了对方所需要的资源
+
+#### 检测死锁
+
+- 记录到MySQL日志中
+  - `set global innodb_print_all_deadlocks=on;`
+  - `show variables like 'log_error';`
+
+```mysql
+-- 死锁
+
+SET GLOBAL innodb_print_all_deadlocks=on;
+
+SHOW VARIABLES LIKE '%deadlocks%';
+
+-- SESSION 1
+
+BEGIN;
+
+UPDATE imc_user SET score=score+10 WHERE user_id=10;
+
+UPDATE imc_course SET score=9.8 WHERE course_id=35;
+
+-- SESSION 2
+
+BEGIN;
+
+UPDATE imc_course SET score=9.8 WHERE course_id=35;
+
+UPDATE imc_user SET score=score+10 WHERE user_id=10;
+
+-- ERROR 1213 (40001): Deadlock found when trying to get lock; try restarting transaction
+```
+
+```
+TRANSACTION 6194, ACTIVE 39 sec starting index read
+mysql tables in use 1, locked 1
+LOCK WAIT 4 lock struct(s), heap size 1128, 2 row lock(s)
+MySQL thread id 365, OS thread handle 140261053122304, query id 6662 localhost root updating
+UPDATE imc_user SET score=score+10 WHERE user_id=10
+RECORD LOCKS space id 38 page no 4 n bits 184 index PRIMARY of table `imc_db`.`imc_course` trx id 6194 lock_mode X locks rec but not gap
+Record lock, heap no 36 PHYSICAL RECORD: n_fields 21; compact format; info bits 0
+ 0: len 4; hex 00000023; asc    #;;
+ 1: len 6; hex 000000001820; asc       ;;
+ 2: len 7; hex 01000001320295; asc     2  ;;
+ 3: len 17; hex 4d7953514ce8afbee7a88b2d3335393833; asc MySQL      -35983;;
+ 4: len 30; hex e9809ae8bf87e5ada6e4b9a04d7953514ce8afbee7a88b2d3335393833e8; asc             MySQL      -35983 ; (total 51 bytes);
+ 5: len 2; hex 0009; asc   ;;
+ 6: len 2; hex 000c; asc   ;;
+ 7: len 2; hex 0002; asc   ;;
+ 8: len 5; hex 999ff10b7b; asc     {;;
+ 9: len 4; hex 0000075f; asc    _;;
+ 10: len 3; hex 800000; asc    ;;
+ 11: len 0; hex ; asc ;;
+ 12: len 0; hex ; asc ;;
+ 13: len 0; hex ; asc ;;
+ 14: len 4; hex 00000017; asc     ;;
+ 15: len 0; hex ; asc ;;
+ 16: len 2; hex 8904; asc   ;;
+ 17: len 2; hex 8806; asc   ;;
+ 18: len 2; hex 8808; asc   ;;
+ 19: len 2; hex 8908; asc   ;;
+ 20: SQL DEFAULT;
+
+RECORD LOCKS space id 45 page no 6 n bits 224 index PRIMARY of table `imc_db`.`imc_user` trx id 6194 lock_mode X locks rec but not gap waiting
+Record lock, heap no 11 PHYSICAL RECORD: n_fields 17; compact format; info bits 0
+ 0: len 4; hex 0000000a; asc     ;;
+ 1: len 6; hex 000000001833; asc      3;;
+ 2: len 7; hex 010000015c0345; asc     \ E;;
+ 3: len 6; hex e6b8a9e8afad; asc       ;;
+ 4: len 30; hex 616564323262633535666639303735333666613939306463376532356239; asc aed22bc55ff907536fa990dc7e25b9; (total 32 bytes);
+ 5: len 2; hex 3120; asc 1 ;;
+ 6: len 0; hex ; asc ;;
+ 7: len 0; hex ; asc ;;
+ 8: len 6; hex e69caae79fa5; asc       ;;
+ 9: len 0; hex ; asc ;;
+ 10: len 3; hex 000000; asc    ;;
+ 11: len 4; hex 0000000a; asc     ;;
+ 12: len 4; hex 00000000; asc     ;;
+ 13: len 4; hex 00000000; asc     ;;
+ 14: len 1; hex 00; asc  ;;
+ 15: len 5; hex 99a23107c1; asc   1  ;;
+ 16: len 1; hex 01; asc  ;;
+
+TRANSACTION 6195, ACTIVE 17 sec starting index read
+mysql tables in use 1, locked 1
+LOCK WAIT 4 lock struct(s), heap size 1128, 2 row lock(s), undo log entries 1
+MySQL thread id 410, OS thread handle 140261623723776, query id 6663 172.22.164.224 mc_class updating
+UPDATE imc_course SET score=9.8 WHERE course_id=35
+RECORD LOCKS space id 45 page no 6 n bits 224 index PRIMARY of table `imc_db`.`imc_user` trx id 6195 lock_mode X locks rec but not gap
+Record lock, heap no 11 PHYSICAL RECORD: n_fields 17; compact format; info bits 0
+ 0: len 4; hex 0000000a; asc     ;;
+ 1: len 6; hex 000000001833; asc      3;;
+ 2: len 7; hex 010000015c0345; asc     \ E;;
+ 3: len 6; hex e6b8a9e8afad; asc       ;;
+ 4: len 30; hex 616564323262633535666639303735333666613939306463376532356239; asc aed22bc55ff907536fa990dc7e25b9; (total 32 bytes);
+ 5: len 2; hex 3120; asc 1 ;;
+ 6: len 0; hex ; asc ;;
+ 7: len 0; hex ; asc ;;
+ 8: len 6; hex e69caae79fa5; asc       ;;
+ 9: len 0; hex ; asc ;;
+ 10: len 3; hex 000000; asc    ;;
+ 11: len 4; hex 0000000a; asc     ;;
+ 12: len 4; hex 00000000; asc     ;;
+ 13: len 4; hex 00000000; asc     ;;
+ 14: len 1; hex 00; asc  ;;
+ 15: len 5; hex 99a23107c1; asc   1  ;;
+ 16: len 1; hex 01; asc  ;;
+
+RECORD LOCKS space id 38 page no 4 n bits 184 index PRIMARY of table `imc_db`.`imc_course` trx id 6195 lock_mode X locks rec but not gap waiting
+Record lock, heap no 36 PHYSICAL RECORD: n_fields 21; compact format; info bits 0
+ 0: len 4; hex 00000023; asc    #;;
+ 1: len 6; hex 000000001820; asc       ;;
+ 2: len 7; hex 01000001320295; asc     2  ;;
+ 3: len 17; hex 4d7953514ce8afbee7a88b2d3335393833; asc MySQL      -35983;;
+ 4: len 30; hex e9809ae8bf87e5ada6e4b9a04d7953514ce8afbee7a88b2d3335393833e8; asc             MySQL      -35983 ; (total 51 bytes);
+ 5: len 2; hex 0009; asc   ;;
+ 6: len 2; hex 000c; asc   ;;
+ 7: len 2; hex 0002; asc   ;;
+ 8: len 5; hex 999ff10b7b; asc     {;;
+ 9: len 4; hex 0000075f; asc    _;;
+ 10: len 3; hex 800000; asc    ;;
+ 11: len 0; hex ; asc ;;
+ 12: len 0; hex ; asc ;;
+ 13: len 0; hex ; asc ;;
+ 14: len 4; hex 00000017; asc     ;;
+ 15: len 0; hex ; asc ;;
+ 16: len 2; hex 8904; asc   ;;
+ 17: len 2; hex 8806; asc   ;;
+ 18: len 2; hex 8808; asc   ;;
+ 19: len 2; hex 8908; asc   ;;
+ 20: SQL DEFAULT;
+```
+
+
+
+#### 处理事务的死锁
+
+- 数据库自行回滚占用资源少的事务
+- 执行足够快就不会死锁

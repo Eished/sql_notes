@@ -33,3 +33,13 @@ UPDATE add_time = current_time;
 SELECT * from imc_class;
 
 CREATE UNIQUE INDEX uqx_classname ON imc_class(class_name);
+
+-- 事务2
+
+BEGIN;
+
+-- UPDATE imc_course SET score=9.8 WHERE score>9.6;
+
+UPDATE imc_course SET score=9.7 WHERE course_id>33;
+
+COMMIT;
